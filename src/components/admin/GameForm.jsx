@@ -1,0 +1,1 @@
+export default function GameForm(){return <div>GameForm</div>}

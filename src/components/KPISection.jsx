@@ -5,6 +5,7 @@ export default function KPISection() {
 
   const {
     teams,
+    roles,
     assignments,
     selectedTeam,
     getFilteredGames
@@ -21,8 +22,40 @@ export default function KPISection() {
   const homeGames =
     games.filter(g => g.is_home).length
 
-  const openTasks =
-    Math.max((games.length * 10) - filteredAssignments.length, 0)
+  const requiredSlotsByCategory = roles.reduce((slotsByCategory, role) => {
+    const slots = Number(role.slots)
+
+    if (!Number.isFinite(slots) || slots <= 0) {
+      return slotsByCategory
+    }
+
+    slotsByCategory.set(
+      role.category,
+      (slotsByCategory.get(role.category) ?? 0) + slots
+    )
+
+    return slotsByCategory
+  }, new Map())
+
+  const assignmentsByGame = filteredAssignments.reduce(
+    (countsByGame, assignment) => {
+      countsByGame.set(
+        assignment.game_id,
+        (countsByGame.get(assignment.game_id) ?? 0) + 1
+      )
+
+      return countsByGame
+    },
+    new Map()
+  )
+
+  const openTasks = games.reduce((total, game) => {
+    const team = teams.find(team => team.id === game.team_id)
+    const requiredSlots = requiredSlotsByCategory.get(team?.category) ?? 0
+    const filledSlots = assignmentsByGame.get(game.id) ?? 0
+
+    return total + Math.max(requiredSlots - filledSlots, 0)
+  }, 0)
 
   const visibleTeams =
     selectedTeam === 'all'

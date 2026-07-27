@@ -1,5 +1,24 @@
 # Changelog
 
+## V24.0.5.4 – Sprint 1D
+- Admin-Spielverwaltung um Bearbeiten und bestätigtes Löschen erweitert
+- `gameService` mit strukturierten Update-/Delete-Abläufen und begrenzten Schreib-Payloads vervollständigt
+- Gemeinsames `GameForm` für Create und Edit mit vollständiger Vorbelegung
+- Eindeutige Bearbeiten-/Löschen-Aktionen in Desktop- und Mobilansicht ergänzt
+- Löschdialog mit Spielidentifikation und Hinweis auf kaskadierte Helfereintragungen umgesetzt
+- Doppelklickschutz und verständliche Fehlerzustände für Update und Delete ergänzt
+- Adminliste und Dashboard-Store werden nach jeder erfolgreichen Spielmutation ohne Seitenreload aktualisiert
+- Bestehende Team- und Kategoriefilter bleiben beim Datenrefresh erhalten
+
+## V24.0.5.3 – Sprint 1C.1
+- Technische Platzhalterwerte in `helper_roles` durch offizielle Vereinswerte ersetzt
+- Rollenbedarf für Aktive auf 1, 1, 2, 4 und 4 Plätze aktualisiert
+- Rollenbedarf für Jugend auf 1, 1, 1, 2, 3, 1 und 1 Plätze aktualisiert
+- Jugendrolle „Brezeln“ in „Brezeln / Sonstiges“ umbenannt
+- Neue reine Datenmigration für bestehende Supabase-Projekte
+- Seed-Daten für neu angelegte Datenbanken aktualisiert
+- KPI „Offene Dienste“ auf die dynamische Summe der geladenen Rollenplätze umgestellt
+
 ## V24.0.5.3 – Sprint 1C
 - Admin-Authentifizierung über Supabase Auth mit E-Mail und Passwort
 - Adminfreigabe ausschließlich über `public.admin_users`

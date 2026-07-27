@@ -50,7 +50,12 @@ function getTeams(game) {
   }
 }
 
-export default function GameTable({ games = [] }) {
+export default function GameTable({
+  games = [],
+  actionsDisabled = false,
+  onEdit,
+  onDelete
+}) {
   const rows = games.map(game => {
     const { date, time } = formatStartTime(game.start_time)
     const { homeTeam, awayTeam } = getTeams(game)
@@ -76,6 +81,7 @@ export default function GameTable({ games = [] }) {
               <th className="px-5 py-4">Heimmannschaft</th>
               <th className="px-5 py-4">Gastmannschaft</th>
               <th className="px-5 py-4">Kategorie</th>
+              <th className="px-5 py-4 text-right">Aktionen</th>
             </tr>
           </thead>
 
@@ -96,6 +102,14 @@ export default function GameTable({ games = [] }) {
                 </td>
                 <td className="px-5 py-4">
                   {row.category}
+                </td>
+                <td className="px-5 py-4">
+                  <GameActions
+                    row={row}
+                    disabled={actionsDisabled}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
                 </td>
               </tr>
             ))}
@@ -134,9 +148,49 @@ export default function GameTable({ games = [] }) {
                 </dd>
               </div>
             </dl>
+
+            <GameActions
+              row={row}
+              disabled={actionsDisabled}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           </article>
         ))}
       </div>
+    </div>
+  )
+}
+
+function GameActions({
+  row,
+  disabled,
+  onEdit,
+  onDelete
+}) {
+  const gameLabel =
+    `${row.homeTeam} gegen ${row.awayTeam} am ${row.date}`
+
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <button
+        type="button"
+        onClick={() => onEdit?.(row.game)}
+        disabled={disabled}
+        aria-label={`${gameLabel} bearbeiten`}
+        className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+      >
+        Bearbeiten
+      </button>
+      <button
+        type="button"
+        onClick={() => onDelete?.(row.game)}
+        disabled={disabled}
+        aria-label={`${gameLabel} löschen`}
+        className="h-10 rounded-xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:bg-red-300"
+      >
+        Löschen
+      </button>
     </div>
   )
 }

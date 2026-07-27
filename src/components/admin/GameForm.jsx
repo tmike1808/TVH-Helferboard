@@ -8,6 +8,31 @@ const EMPTY_VALUES = {
   venue: 'home'
 }
 
+function pad(value) {
+  return String(value).padStart(2, '0')
+}
+
+function buildInitialValues(game) {
+  if (!game) {
+    return { ...EMPTY_VALUES }
+  }
+
+  const startTime = new Date(game.start_time)
+  const hasValidStartTime = !Number.isNaN(startTime.getTime())
+
+  return {
+    date: hasValidStartTime
+      ? `${startTime.getFullYear()}-${pad(startTime.getMonth() + 1)}-${pad(startTime.getDate())}`
+      : '',
+    time: hasValidStartTime
+      ? `${pad(startTime.getHours())}:${pad(startTime.getMinutes())}`
+      : '',
+    teamId: game.team_id ? String(game.team_id) : '',
+    opponent: game.opponent ?? '',
+    venue: game.is_home === false ? 'away' : 'home'
+  }
+}
+
 function buildStartTime(dateValue, timeValue) {
   const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue)
   const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeValue)
@@ -36,19 +61,23 @@ function buildStartTime(dateValue, timeValue) {
 }
 
 export default function GameForm({
+  mode = 'create',
+  game = null,
   teams = [],
   saving = false,
   error = null,
   onSubmit,
   onCancel
 }) {
-  const [values, setValues] = useState(EMPTY_VALUES)
+  const [values, setValues] = useState(() => buildInitialValues(game))
   const [validationErrors, setValidationErrors] = useState({})
   const dateInputRef = useRef(null)
 
   useEffect(() => {
+    setValues(buildInitialValues(game))
+    setValidationErrors({})
     dateInputRef.current?.focus()
-  }, [])
+  }, [game, mode])
 
   function updateValue(field, value) {
     setValues(currentValues => ({
@@ -192,10 +221,14 @@ export default function GameForm({
     </Field>
   )
 
+  const isEditMode = mode === 'edit'
+
   return (
     <div className="mb-6 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm sm:p-7">
       <div className="mb-6">
-        <h2 className="text-2xl font-black">Neues Spiel</h2>
+        <h2 className="text-2xl font-black">
+          {isEditMode ? 'Spiel bearbeiten' : 'Neues Spiel'}
+        </h2>
         <p className="mt-1 text-slate-600">
           Pflichtfelder sind mit einem Sternchen gekennzeichnet.
         </p>
@@ -280,7 +313,11 @@ export default function GameForm({
             disabled={saving}
             className="h-12 rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:bg-emerald-400"
           >
-            {saving ? 'Spiel wird gespeichert …' : 'Spiel speichern'}
+            {saving
+              ? 'Spiel wird gespeichert …'
+              : isEditMode
+                ? 'Änderungen speichern'
+                : 'Spiel speichern'}
           </button>
         </div>
       </form>

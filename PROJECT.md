@@ -1,7 +1,8 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage sind der Commit
-`3ddb9b1` (`V24.0.5.2 Sprint 1B`) und der Arbeitsstand von Sprint 1C.
+`f2ec899` (`V24.0.5.3 Sprint 1C`) und die Arbeitsstände von Sprint 1C.1 und
+Sprint 1D.
 
 ## 1. Projektziel
 
@@ -10,8 +11,8 @@ Das Projekt soll ein öffentliches Helferboard für den TV Homburg Handball bere
 Der derzeitige Code bildet dieses Ziel teilweise ab: Das Helfer-Dashboard
 bleibt öffentlich erreichbar. Der Adminbereich ist über die Sidebar
 erreichbar, wird durch Supabase Auth und eine Freigabe in `admin_users`
-geschützt, zeigt Spiele an und besitzt einen Ablauf zum Anlegen. Bearbeiten und
-Löschen sind noch nicht implementiert.
+geschützt und besitzt vollständige Abläufe zum Anzeigen, Anlegen, Bearbeiten
+und Löschen von Spielen.
 
 ## 2. Technischer Ist-Zustand
 
@@ -173,11 +174,14 @@ bestätigt.
 
 - `getGames()`: lädt die im Dashboard nachweislich verwendeten Spielfelder sowie `id`, `name` und `category` der Teams, ordnet Teams über `team_id` zu und sortiert Spiele aufsteigend nach `start_time`.
 - `getTeams()`: lädt `id`, `name` und `category` der verfügbaren Mannschaften und sortiert sie für das Formular nach Namen.
-- `createGame(g)`: begrenzt den Schreib-Payload auf `team_id`, `start_time`, `opponent` und `is_home`, legt genau diesen Datensatz an und wirft einen Supabase-Fehler an die Seite weiter. Der anschließend sichtbare Datensatz wird über `getGames()` neu gelesen.
-- `updateGame(id, g)`: aktualisiert ein Spiel anhand von `id`.
-- `deleteGame(id)`: löscht ein Spiel anhand von `id`.
+- `createGame(g)`: begrenzt den Schreib-Payload auf `team_id`, `start_time`, `opponent` und `is_home`, legt genau diesen Datensatz an und kapselt Supabase-Fehler als strukturierten `GameServiceError`. Der anschließend sichtbare Datensatz wird über `getGames()` neu gelesen.
+- `updateGame(id, g)`: begrenzt den Payload auf dieselben vier Felder, aktualisiert eindeutig anhand der Spiel-ID und gibt den aktualisierten Datensatz zurück.
+- `deleteGame(id)`: löscht eindeutig anhand der Spiel-ID, gibt die gelöschte ID zurück und unterscheidet einen Fremdschlüsselkonflikt von allgemeinen Fehlern.
 
-`getGames()`, `getTeams()` und `createGame()` werden von `AdminGamesPage` verwendet und werfen Supabase-Fehler an die Seite weiter. `updateGame()` und `deleteGame()` bleiben ungenutzt. Für Lese- und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
+Alle fünf Funktionen werden von `AdminGamesPage` verwendet. Technische
+Supabase-Fehler werden nicht direkt in der Oberfläche ausgegeben; die Seite
+übersetzt die strukturierten Fehlercodes in verständliche Meldungen. Für Lese-
+und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 
 ### Seiten und Komponenten
 
@@ -193,12 +197,12 @@ bestätigt.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und Mannschaften für die aktuelle Filterung.
 - `FilterBar`: Team- und Kategoriefilter.
 - `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige sowie Ein- und Austragen von Helfern.
-- `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-, Leer-, Formular-, Speicher- und Meldungszustand; orchestriert Lesen und Anlegen über `gameService`.
+- `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-, Leer-, Formular-, Speicher-, Lösch- und Meldungszustand; orchestriert Lesen, Anlegen, Bearbeiten und Löschen über `gameService` und aktualisiert danach Adminliste und Dashboard-Store.
 - `AdminLoginPage`: kontrolliertes Loginformular mit Pflichtfeldprüfung,
   Ladezustand, Doppelklickschutz und Rückkehr zum Dashboard.
-- `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum, Uhrzeit, Heimteam, Gastteam und Kategorie.
-- `GameForm`: kontrolliertes, beschriftetes Create-Formular mit Datum, Uhrzeit, Heim-/Auswärtswahl, TVH-Team-Auswahl, Gegnername, Validierung, Ladezustand und Abbrechen.
-- `DeleteGameDialog`: leerer Platzhalter, der `null` zurückgibt.
+- `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum, Uhrzeit, Heimteam, Gastteam und Kategorie sowie eindeutig zugeordnete Aktionen zum Bearbeiten und Löschen.
+- `GameForm`: gemeinsames, kontrolliertes Create-/Edit-Formular mit Datum, Uhrzeit, Heim-/Auswärtswahl, TVH-Team-Auswahl, Gegnername, Validierung, Vorbelegung, Ladezustand und Abbrechen.
+- `DeleteGameDialog`: modaler Bestätigungsdialog mit Spielidentifikation, Hinweis auf kaskadierte Helferzuordnungen, Ladezustand, Fehleranzeige, Abbrechen und Escape-Unterstützung.
 
 ### Aktuell implementierte Funktionen
 
@@ -209,6 +213,8 @@ bestätigt.
 - Dynamisches Laden der Rollen passend zur Teamkategorie.
 - Sortierung der Rollen nach `order_index`.
 - Berechnung der benötigten Plätze aus der Summe von `helper_roles.slots`.
+- Berechnung der KPI „Offene Dienste“ aus den dynamischen Rollenplätzen je
+  Spielkategorie abzüglich vorhandener Helferzuordnungen.
 - Orange Statusdarstellung bei offenen Plätzen und grüne Statusdarstellung bei vollständiger Besetzung.
 - Eintragen eines getrimmten Helfernamens in eine noch offene Rolle.
 - Clientseitiges Verhindern eines namensgleichen Doppeleintrags innerhalb derselben Rolle und desselben Spiels, ohne Beachtung der Groß-/Kleinschreibung.
@@ -222,8 +228,15 @@ bestätigt.
 - Validierung von Datum, Uhrzeit, TVH-Mannschaft, Gegner und unterschiedlichen Heim-/Gastmannschaften.
 - Erzeugen eines eindeutigen ISO-Zeitwerts aus lokal erfasstem Datum und lokaler Uhrzeit.
 - Anlegen über `gameService.createGame()` mit sichtbarem Lade-, Erfolgs- und Fehlerzustand sowie synchronem Doppelklickschutz.
-- Neuladen und sortierte Darstellung der Adminliste nach erfolgreichem Anlegen.
-- Erneutes Laden aller Dashboard-Daten beim nächsten Öffnen des Dashboards.
+- Bearbeiten mit Vorbelegung aller Spielfelder, identischer Validierung,
+  synchronem Doppelklickschutz und `gameService.updateGame()`.
+- Löschen erst nach ausdrücklicher Bestätigung über
+  `gameService.deleteGame()`; laufende Löschvorgänge können nicht mehrfach
+  ausgelöst oder abgebrochen werden.
+- Neuladen und sortierte Darstellung der Adminliste nach erfolgreichem
+  Anlegen, Bearbeiten oder Löschen.
+- Unmittelbares Neuladen aller Dashboard-Daten nach jeder erfolgreichen
+  Spielmutation; Team- und Kategoriefilter bleiben dabei erhalten.
 - Laden und Wiederherstellen einer bestehenden Supabase-Session.
 - Reaktion auf Änderungen des Supabase-Authstatus.
 - Login mit E-Mail und Passwort ohne öffentliche Registrierung.
@@ -245,13 +258,9 @@ wieder entfernt.
 - Anonyme Inserts in `games` bleiben absichtlich blockiert. Der Create-Pfad
   funktioniert real nur nach Anwendung der Sprint-1C-Migration und manueller
   Freischaltung eines Auth-Benutzers; dieser Ablauf ist end-to-end bestätigt.
-- Der Adminbereich kann lesen und anlegen; Update und Delete fehlen.
-- `DeleteGameDialog` ist weiterhin ein Platzhalter.
 - Kalender, Helferansicht, Teams und Kalenderimport sind deaktiviert und haben keine Funktion.
 - Es gibt keine URL-basierte Navigation; die aktuelle Seite wird nur im lokalen Zustand von `App` gehalten.
-- Spiele-CRUD besitzt einen eingebundenen Create-Pfad; Bearbeitungsformular und Löschbestätigung fehlen.
 - Es gibt keinen Excel-Import und keinen handball.net-Import.
-- Die KPI „Offene Dienste“ rechnet pauschal mit zehn Plätzen pro Spiel, nicht mit den dynamischen Rollen und deren `slots`.
 - Die MatchCard ermittelt „vollständig besetzt“ anhand der Gesamtzahl aller Spielzuordnungen. Zuordnungen zu nicht passenden Rollen können den Status verfälschen.
 - Fehler aus `helperService` werden in `MatchCard` nicht anhand des Rückgabewerts ausgewertet. Ein fehlgeschlagenes Einfügen kann daher trotzdem das Eingabefeld leeren; ein verständlicher Fehler wird nicht zuverlässig angezeigt.
 - Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die DB-0-Policy muss deshalb für die öffentliche Austragefunktion derzeit das Löschen jeder sichtbaren Zuordnung anhand ihrer ID erlauben.
@@ -260,7 +269,11 @@ wieder entfernt.
 - Es gibt keine automatisierten Tests und kein Testskript.
 - Es gibt keine Deployment-Konfiguration im Repository.
 
-Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von Namen, Verhindern doppelter Einträge und Fehlerbehandlung, für `V24.0.5` die vorbereitete Admin-Grundstruktur, für Sprint 1A die interne Navigation und Leseansicht sowie für Sprint 1B den Create-Ablauf. Read und Create sind implementiert; Update und Delete bleiben offen.
+Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von
+Namen, Verhindern doppelter Einträge und Fehlerbehandlung, für `V24.0.5` die
+vorbereitete Admin-Grundstruktur, für Sprint 1A die interne Navigation und
+Leseansicht, für Sprint 1B den Create-Ablauf, für Sprint 1C die
+Admin-Authentifizierung und für Sprint 1D den Abschluss des Spiele-CRUD.
 
 ## 3. Datenmodell
 
@@ -287,7 +300,9 @@ angewendete DB-0-Migration sowie die in Sprint 1C ergänzte Adminmigration.
 | `is_home` | Zählung der Heimspiele in den KPIs | `boolean not null` |
 | `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
 
-`createGame` schreibt ausschließlich die vier belegten Felder. `updateGame` übernimmt weiterhin beliebige Objektfelder, ist aber nicht in die Oberfläche eingebunden. Daraus lassen sich keine weiteren verlässlichen Spalten ableiten.
+`createGame` und `updateGame` schreiben ausschließlich die vier belegten
+Felder. `deleteGame` filtert ausschließlich über `id`. Daraus lassen sich
+keine weiteren verlässlichen Spalten ableiten.
 
 ### `helper_roles`
 
@@ -329,23 +344,26 @@ sie nur die Rolle `authenticated`.
 - Rollen werden dynamisch aus `helper_roles` geladen.
 - Rollen werden innerhalb der Kategorie aufsteigend nach `order_index` sortiert.
 - Die fachlich vorgesehene Reihenfolge für **Aktive** ist:
-  1. Zeitnehmer
-  2. Sekretär
-  3. Wischer
-  4. Verkauf
-  5. Ordner
+  1. Zeitnehmer – 1 Platz
+  2. Sekretär – 1 Platz
+  3. Wischer – 2 Plätze
+  4. Verkauf – 4 Plätze
+  5. Ordner – 4 Plätze
 - Die fachlich vorgesehene Reihenfolge für **Jugend** ist:
-  1. Zeitnehmer
-  2. Sekretär
-  3. Schiri
-  4. Verkauf
-  5. Kuchen
-  6. Brezeln
-  7. Trikots
+  1. Zeitnehmer – 1 Platz
+  2. Sekretär – 1 Platz
+  3. Schiri – 1 Platz
+  4. Verkauf – 2 Plätze
+  5. Kuchen – 3 Plätze
+  6. Brezeln / Sonstiges – 1 Platz
+  7. Trikots – 1 Platz
 - Orange bedeutet: Es sind noch Helferplätze offen.
 - Grün bedeutet: Alle benötigten Helferplätze sind besetzt.
 
-Die Farblogik und Sortierung sind im Code umgesetzt. DB-0 enthält beide Rollenlisten mit den verbindlichen `order_index`-Werten. Weil konkrete Vereinsbedarfe weiterhin nicht belegt sind, setzt der Seed alle `slots` deutlich als vorläufig markiert auf den technischen Mindestwert `1`.
+Die Farblogik und Sortierung sind im Code umgesetzt. Die Datenmigration aus
+Sprint 1C.1 aktualisiert bestehende Projekte auf diese offiziellen Werte; der
+Seed enthält dieselben Werte für neue Datenbanken. Die Gesamtbedarfe betragen
+12 Plätze für Aktive und 10 Plätze für Jugend.
 
 ## 5. Eingefrorener MVP-Umfang
 
@@ -364,7 +382,11 @@ Die Farblogik und Sortierung sind im Code umgesetzt. DB-0 enthält beide Rollenl
 - Excel-Import nach Fertigstellung des Spiele-CRUD.
 - Öffentliches Deployment.
 
-Die Liste beschreibt den eingefrorenen Zielumfang. Im Ist-Zustand sind Dashboard, KPIs, Filter, MatchCards, dynamische Rollen, Helferaktionen sowie Lesen und Anlegen in der Admin-Spieleübersicht implementiert. Bearbeiten, Löschen, Excel-Import und öffentliches Deployment sind noch nicht fertiggestellt.
+Die Liste beschreibt den eingefrorenen Zielumfang. Im Ist-Zustand sind
+Dashboard, KPIs, Filter, MatchCards, dynamische Rollen, Helferaktionen sowie
+Anzeigen, Anlegen, Bearbeiten und Löschen in der Admin-Spieleübersicht
+implementiert. Excel-Import und öffentliches Deployment sind noch nicht
+fertiggestellt.
 
 ## 6. Nicht Teil des aktuellen MVP
 
@@ -413,5 +435,8 @@ Im aktuellen Repository existieren keine automatisierten Tests und kein Testskri
 - **V24.0.5.3:** Sprint 1C mit Supabase-Admin-Authentifizierung,
   `admin_users` und sicheren Schreibrechten. Die reale Admin-Abnahme wird im
   Sprint-Report dokumentiert.
+- **V24.0.5.4:** Sprint 1D schließt die Spielverwaltung mit Bearbeiten,
+  bestätigtem Löschen und unmittelbarer Aktualisierung von Adminliste und
+  Dashboard ab.
 - **V24.0.6:** Excel-Import nach Fertigstellung des Spiele-CRUD.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

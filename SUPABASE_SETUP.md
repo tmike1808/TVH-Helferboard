@@ -7,7 +7,9 @@ Die versionierte Grundlage besteht aus:
 - `supabase/migrations/20260727000100_initial_schema.sql`
 - `supabase/seed.sql`
 
-Die Migration ist eine einmalig auszuführende Basismigration. `seed.sql` ist für eine leere Datenbank wiederholbar, enthält aber bewusst anpassbare Beispieldaten und vorläufige Slot-Werte.
+Die Migration ist eine einmalig auszuführende Basismigration. `seed.sql` ist
+für eine leere Datenbank wiederholbar, enthält anpassbare Beispielteams und
+die bestätigten Helferrollen mit offiziellen Vereinswerten.
 
 ## 1. Neues Supabase-Projekt anlegen
 
@@ -31,7 +33,8 @@ Die Datei verwendet eine Transaktion. Schlägt eine Anweisung fehl, wird die Bas
 
 1. `supabase/seed.sql` öffnen.
 2. Die als Beispiele markierten Teamnamen prüfen und bei Bedarf vor der ersten produktiven Ausführung anpassen.
-3. Die vorläufigen Werte von `helper_roles.slots` fachlich festlegen. Der Ausgangswert `1` ist nur der technische Mindestwert und kein bestätigter Vereinsbedarf.
+3. Die vollständigen Rollenbezeichnungen, Reihenfolgen und Slot-Werte gegen
+   die aktuelle Vereinsvorgabe prüfen.
 4. Den vollständigen Inhalt in einer neuen SQL-Editor-Abfrage ausführen.
 
 Das Seed-Skript enthält nur Daten und kann wegen `ON CONFLICT` erneut ausgeführt werden. Es aktualisiert dabei die definierten Rollenreihenfolgen und Slot-Werte auf den Inhalt der Datei.
@@ -204,4 +207,5 @@ Bedarf getrennt verwaltet werden.
 - Helfer besitzen noch keine Konten oder Austrage-Tokens. Deshalb kann die öffentliche Delete-Policy technisch jede sichtbare Helferzuordnung anhand ihrer ID löschen. Ein späteres Besitz- oder Tokenkonzept sollte dies einschränken.
 - `helper_assignments` ist gemäß MVP-Vorgabe öffentlich lesbar; damit sind eingetragene Helfernamen öffentlich. Datenschutz und Namenshinweise müssen vor dem öffentlichen Betrieb fachlich bewertet werden.
 - Die Datenbank verhindert namensgleiche Doppeleinträge je Spiel und Rolle ohne Beachtung der Groß-/Kleinschreibung. Sie verhindert noch keine konkurrierende Überbelegung über `helper_roles.slots`.
-- Die vorläufigen Slot-Werte im Seed sind vor produktiver Nutzung zu ersetzen.
+- Änderungen an offiziellen Rollenbezeichnungen oder Slot-Werten gehören in
+  eine neue Datenmigration und gleichzeitig in `supabase/seed.sql`.

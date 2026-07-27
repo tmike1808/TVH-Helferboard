@@ -7,6 +7,7 @@ import Topbar from './components/Topbar'
 import KPISection from './components/KPISection'
 import FilterBar from './components/FilterBar'
 import MatchCard from './components/MatchCard'
+import AdminGameImportPage from './pages/AdminGameImportPage'
 import AdminGamesPage from './pages/AdminGamesPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import { useAdminAuth } from './hooks/useAdminAuth'
@@ -77,7 +78,9 @@ export default function App() {
       )
     }
 
-    return <AdminGamesPage />
+    return activePage === 'admin-game-import'
+      ? <AdminGameImportPage />
+      : <AdminGamesPage />
   }
 
   return (
@@ -93,7 +96,7 @@ export default function App() {
 
       <main className="min-w-0 p-4 sm:p-6 lg:p-7">
 
-        {activePage === 'admin-games' ? (
+        {['admin-games', 'admin-game-import'].includes(activePage) ? (
           renderAdminPage()
         ) : (
           <>

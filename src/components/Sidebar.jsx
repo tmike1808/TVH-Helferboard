@@ -77,8 +77,9 @@ export default function Sidebar({
 
         <NavItem
           icon={<Calendar size={18} />}
-          label="Kalenderimport"
-          disabled
+          label="Spielimport"
+          active={activePage === 'admin-game-import'}
+          onClick={() => onNavigate?.('admin-game-import')}
         />
 
       </nav>

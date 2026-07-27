@@ -5,11 +5,17 @@ Diese Anleitung richtet ein neues Supabase-Projekt für das TVH Helferboard ein.
 Die versionierte Grundlage besteht aus:
 
 - `supabase/migrations/20260727000100_initial_schema.sql`
+- `supabase/migrations/20260727000200_admin_auth.sql`
+- `supabase/migrations/20260727000300_update_helper_roles.sql`
+- `supabase/migrations/20260727000400_add_team_import_name.sql`
+- `supabase/migrations/20260727000500_complete_import_teams.sql`
 - `supabase/seed.sql`
 
-Die Migration ist eine einmalig auszuführende Basismigration. `seed.sql` ist
-für eine leere Datenbank wiederholbar, enthält anpassbare Beispielteams und
-die bestätigten Helferrollen mit offiziellen Vereinswerten.
+Die erste Migration ist die einmalig auszuführende Basismigration. Die
+weiteren Migrationen werden in der Reihenfolge ihres Zeitstempels angewendet.
+`seed.sql` ist für eine leere Datenbank wiederholbar und enthält die
+bestätigten Vereinsmannschaften, ihre Excel-Importnamen sowie die
+Helferrollen mit offiziellen Vereinswerten.
 
 ## 1. Neues Supabase-Projekt anlegen
 
@@ -32,20 +38,54 @@ Die Datei verwendet eine Transaktion. Schlägt eine Anweisung fehl, wird die Bas
 ## 3. Seed-Daten ausführen
 
 1. `supabase/seed.sql` öffnen.
-2. Die als Beispiele markierten Teamnamen prüfen und bei Bedarf vor der ersten produktiven Ausführung anpassen.
+2. Die Vereinsmannschaften und ihre optionalen `import_name`-Werte prüfen.
 3. Die vollständigen Rollenbezeichnungen, Reihenfolgen und Slot-Werte gegen
    die aktuelle Vereinsvorgabe prüfen.
 4. Den vollständigen Inhalt in einer neuen SQL-Editor-Abfrage ausführen.
 
 Das Seed-Skript enthält nur Daten und kann wegen `ON CONFLICT` erneut ausgeführt werden. Es aktualisiert dabei die definierten Rollenreihenfolgen und Slot-Werte auf den Inhalt der Datei.
 
-## 4. Project URL und öffentlichen Schlüssel finden
+## 4. Excel-Importnamen einrichten
+
+Sprint 2A ergänzt die Migration:
+
+- `supabase/migrations/20260727000400_add_team_import_name.sql`
+- `supabase/migrations/20260727000500_complete_import_teams.sql`
+
+Sie erweitert `public.teams` um das optionale Feld `import_name`. Ein
+partieller Unique-Index auf `lower(import_name)` stellt sicher, dass nicht
+leere Importnamen unabhängig von Groß-/Kleinschreibung eindeutig sind;
+mehrere `NULL`-Werte bleiben erlaubt. Bestehende Teamnamen, Primärschlüssel,
+RLS-Regeln und Policies werden nicht verändert.
+
+Die erste Migration setzt für die vier vorhandenen Teams die anhand der
+Teamliste und der Beispieldatei eindeutig belegten Zuordnungen. Die zweite
+Migration ergänzt ausschließlich die vier noch fehlenden Jugendteams und
+wiederholt die bestehenden Importnamen robust ohne hart codierte IDs:
+
+| Excel-Mannschaft | Supabase-Team |
+| --- | --- |
+| `Herren 1` | `TVH Herren 1` |
+| `Herren 2` | `TVH Herren 2` |
+| `mD1` | `TVH Männliche Jugend D 1` |
+| `mD2` | `TVH Männliche Jugend D 2` |
+| `mE` | `TVH Männliche Jugend E` |
+| `wC` | `TVH Weibliche Jugend C` |
+| `wD` | `TVH Weibliche Jugend D` |
+| `wE` | `TVH Weibliche Jugend E` |
+
+`teams.order_index` existiert weder in der Basismigration noch in der
+aktuellen Instanz. Deshalb wird in Sprint 2A kein solches Feld ergänzt oder
+mit erfundenen Werten befüllt. `gameService` sortiert Teams weiterhin
+alphabetisch nach `name`.
+
+## 5. Project URL und öffentlichen Schlüssel finden
 
 Die Projekt-URL und den clientgeeigneten öffentlichen Schlüssel zeigt Supabase im **Connect**-Dialog. Die Schlüssel sind außerdem unter **Settings → API Keys** verfügbar. Für dieses Frontend wird nur der öffentliche Anon-/Publishable-Schlüssel verwendet.
 
 Geheime oder privilegierte Schlüssel dürfen niemals in den Browser, in `.env.example`, in Screenshots, in Reports oder in Git gelangen. Die offiziellen Supabase-Hinweise zu Schlüsseln stehen unter [Understanding API keys](https://supabase.com/docs/guides/getting-started/api-keys).
 
-## 5. `.env.local` anlegen
+## 6. `.env.local` anlegen
 
 Im Projektstamm eine lokale, von Git ignorierte Datei `.env.local` anlegen:
 
@@ -62,7 +102,7 @@ Danach den Vite-Entwicklungsserver neu starten, weil Vite Umgebungsvariablen bei
 npm run dev
 ```
 
-## 6. Tabellen und Seed-Daten prüfen
+## 7. Tabellen und Seed-Daten prüfen
 
 Im Table Editor müssen folgende Tabellen vorhanden sein:
 
@@ -91,6 +131,14 @@ from public.helper_roles
 order by category, order_index;
 ```
 
+Die Importnamen prüfen:
+
+```sql
+select name, category, import_name
+from public.teams
+order by category, name;
+```
+
 Aktive Policies prüfen:
 
 ```sql
@@ -106,7 +154,7 @@ where schemaname = 'public'
 order by tablename, cmd, policyname;
 ```
 
-## 7. Aktive RLS-Regeln
+## 8. Aktive RLS-Regeln
 
 RLS ist für alle vier Tabellen aktiviert.
 
@@ -128,19 +176,29 @@ RLS ist für alle vier Tabellen aktiviert.
 
 Die RLS- und Grant-Konfiguration folgt der Supabase-Empfehlung, exponierte Tabellen abzusichern und nur benötigte Rechte zu vergeben. Hintergrund: [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
-## 8. Warum Admin-Schreiboperationen noch nicht funktionieren
+## 9. Warum Admin-Schreiboperationen ohne Admin-Anmeldung nicht funktionieren
 
-Sprint 1B enthält im Frontend bereits `gameService.createGame()`, aber noch keine Admin-Authentifizierung. Die sichere DB-0-Grundlage erteilt anonymen Clients absichtlich kein Schreibrecht auf `games`.
+Die sichere DB-0-Grundlage erteilt anonymen Clients absichtlich kein
+Schreibrecht auf `games`. Sprint 1C ergänzt Supabase Auth, `admin_users` und
+darauf begrenzte Admin-Policies. Create, Edit und Delete funktionieren deshalb
+nur nach erfolgreicher Anmeldung und bestätigter Adminfreigabe.
 
-Dadurch wird „Neues Spiel“ gegen diese sichere RLS-Konfiguration mit einem Berechtigungsfehler scheitern, bis ein späterer Sprint:
+Ohne Admin-Anmeldung bleiben Spiele-Schreiboperationen erwartungsgemäß durch
+RLS blockiert. Dieser Schutz darf nicht durch eine öffentliche Insert-Policy
+auf `games` oder durch einen privilegierten Schlüssel im Frontend umgangen
+werden. Die Importvorschau aus Sprint 2A liest ausschließlich Teams und Spiele.
+Sprint 2B führt Spiele- und freiwillige Alias-Mutationen erst nach bestätigter
+Adminanmeldung und ausdrücklicher Importbestätigung aus. Dafür werden
+ausschließlich die bereits vorhandenen Sprint-1C-Policies verwendet.
 
-1. Supabase Auth für Administratoren einführt,
-2. eine belastbare Adminrolle beziehungsweise einen überprüfbaren Claim festlegt und
-3. darauf begrenzte RLS-Policies für Admin-Schreiboperationen als neue Migration ergänzt.
+Der Import lädt unmittelbar vor dem Speichern den aktuellen Spielebestand und
+prüft Duplikate erneut anhand von `team_id`, `start_time` und normalisiertem
+Gegnernamen. Es wurde bewusst keine zusätzliche Unique-Regel auf `games`
+eingeführt: Ohne externe fachliche Spiel-ID ist das freie Gegnerfeld keine
+zweifelsfrei belastbare Datenbankidentität. Der Single-Flight-Schutz und die
+erneute Remote-Prüfung begrenzen das Risiko auf Anwendungsebene.
 
-Dieser Konflikt darf nicht durch eine öffentliche Insert-Policy auf `games` oder durch einen privilegierten Schlüssel im Frontend umgangen werden.
-
-## 9. Admin-Authentifizierung einrichten
+## 10. Admin-Authentifizierung einrichten
 
 Sprint 1C ergänzt die Migration:
 
@@ -202,7 +260,7 @@ Das Löschen aus `admin_users` entzieht nur die Adminrechte. Das zugehörige
 Auth-Konto bleibt in **Authentication → Users** bestehen und kann dort bei
 Bedarf getrennt verwaltet werden.
 
-## 10. Bekannte MVP-Sicherheitsgrenzen
+## 11. Bekannte MVP-Sicherheitsgrenzen
 
 - Helfer besitzen noch keine Konten oder Austrage-Tokens. Deshalb kann die öffentliche Delete-Policy technisch jede sichtbare Helferzuordnung anhand ihrer ID löschen. Ein späteres Besitz- oder Tokenkonzept sollte dies einschränken.
 - `helper_assignments` ist gemäß MVP-Vorgabe öffentlich lesbar; damit sind eingetragene Helfernamen öffentlich. Datenschutz und Namenshinweise müssen vor dem öffentlichen Betrieb fachlich bewertet werden.

@@ -1,8 +1,9 @@
 # TVH Helfer Dashboard
 
-Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage sind der Commit
-`f2ec899` (`V24.0.5.3 Sprint 1C`) und die Arbeitsstände von Sprint 1C.1 und
-Sprint 1D.
+Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage ist der Commit
+`e2db2d6` (`V24.0.5.4 Spielverwaltung abschließen und Helferrollen
+aktualisieren`) sowie der noch nicht committete Arbeitsstand von Sprint 2A
+und Sprint 2B.
 
 ## 1. Projektziel
 
@@ -12,7 +13,11 @@ Der derzeitige Code bildet dieses Ziel teilweise ab: Das Helfer-Dashboard
 bleibt öffentlich erreichbar. Der Adminbereich ist über die Sidebar
 erreichbar, wird durch Supabase Auth und eine Freigabe in `admin_users`
 geschützt und besitzt vollständige Abläufe zum Anzeigen, Anlegen, Bearbeiten
-und Löschen von Spielen.
+und Löschen von Spielen. Sprint 2A ergänzt eine geschützte
+Excel-Importvorschau mit Team-Mapping und Duplikaterkennung. Sprint 2B ergänzt
+den bestätigten Import erneut geprüfter Heimspiele, Teilergebnisse,
+Doppelauslösungsschutz und den reload-freien Dashboard-Refresh. Die 63 Spiele
+aus der vollständigen Beispieldatei sind noch nicht produktiv importiert.
 
 ## 2. Technischer Ist-Zustand
 
@@ -32,6 +37,7 @@ Das Projekt ist eine JavaScript-Single-Page-Anwendung ohne TypeScript und ohne R
 | PostCSS | `postcss ^8.4.49` | `8.5.23` |
 | Autoprefixer | `autoprefixer ^10.4.20` | `10.5.4` |
 | Lucide React | `lucide-react ^0.511.0` | `0.511.0` |
+| Excel-Leser | `read-excel-file ^9.3.4` | `9.3.4` |
 
 Das Lockfile verwendet Lockfile-Version 3. Für die Bestandsprüfung standen Node.js `24.15.0` und npm `11.12.1` zur Verfügung. Das Repository definiert keine unterstützte Node-/npm-Version über `engines`, `.nvmrc` oder eine vergleichbare Datei.
 
@@ -39,8 +45,9 @@ Vorhandene npm-Skripte:
 
 - `npm run dev`: startet Vite.
 - `npm run build`: erzeugt den Produktions-Build mit Vite.
+- `npm test`: führt die automatisierten Node-Tests aus.
 
-Es gibt keine Skripte für Tests, Linting, Formatierung oder Vorschau.
+Es gibt keine Skripte für Linting, Formatierung oder Vorschau.
 
 ### Einstiegspunkte
 
@@ -49,10 +56,12 @@ Es gibt keine Skripte für Tests, Linting, Formatierung oder Vorschau.
 3. `src/App.jsx` lädt beim Mounten die Dashboard-Daten, rendert Sidebar, Topbar, KPIs, Filter und die gefilterten MatchCards.
 
 Es ist kein Client-Router installiert. `App` schaltet über lokalen
-React-Zustand zwischen Dashboard, Admin-Login und geschützter
-`AdminGamesPage` um. Die Admin-Session bleibt durch den Supabase-Client nach
-einem Browser-Reload erhalten; die ausgewählte Seite besitzt weiterhin keine
-eigene URL und startet nach einem Reload wieder beim Dashboard.
+React-Zustand zwischen Dashboard, Admin-Login, geschützter
+`AdminGamesPage` und geschützter `AdminGameImportPage` um. Beide Adminseiten
+verwenden dieselbe Authentifizierungsprüfung. Die Admin-Session bleibt durch
+den Supabase-Client nach einem Browser-Reload erhalten; die ausgewählte Seite
+besitzt weiterhin keine eigene URL und startet nach einem Reload wieder beim
+Dashboard.
 
 ### Aktuelle Verzeichnisstruktur
 
@@ -81,7 +90,10 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 ├── supabase/
 │   ├── migrations/
 │   │   ├── 20260727000100_initial_schema.sql
-│   │   └── 20260727000200_admin_auth.sql
+│   │   ├── 20260727000200_admin_auth.sql
+│   │   ├── 20260727000300_update_helper_roles.sql
+│   │   ├── 20260727000400_add_team_import_name.sql
+│   │   └── 20260727000500_complete_import_teams.sql
 │   └── seed.sql
 ├── tailwind.config.js
 ├── vite.config.js
@@ -96,6 +108,9 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     │   ├── Topbar.jsx
     │   └── admin/
     │       ├── DeleteGameDialog.jsx
+    │       ├── GameImportConfirmDialog.jsx
+    │       ├── GameImportPreview.jsx
+    │       ├── GameImportResult.jsx
     │       ├── GameForm.jsx
     │       └── GameTable.jsx
     ├── lib/
@@ -103,16 +118,24 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     ├── hooks/
     │   └── useAdminAuth.js
     ├── pages/
+    │   ├── AdminGameImportPage.jsx
     │   ├── AdminGamesPage.jsx
     │   └── AdminLoginPage.jsx
     ├── services/
     │   ├── authService.js
+    │   ├── gameImportModel.js
+    │   ├── gameImportParser.js
+    │   ├── gameImportService.js
+    │   ├── gameImportWorkflow.js
     │   ├── gameService.js
     │   └── helperService.js
     ├── store/
     │   └── useDashboardStore.js
     └── styles/
         └── globals.css
+└── tests/
+    ├── gameImportParser.test.js
+    └── gameImportWorkflow.test.js
 ```
 
 `node_modules/`, `dist/`, lokale `.env`-Varianten und Editor-Dateien werden über `.gitignore` ausgeschlossen. `.env.example` ist ausdrücklich von der allgemeinen `.env.*`-Regel ausgenommen und enthält ausschließlich Platzhalter.
@@ -127,6 +150,15 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 - Selektorlogik: `getFilteredGames`
 
 Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält Spiele, Teams, Lade-, Formular-, Speicher- und Meldungszustände lokal in `AdminGamesPage` und lädt beziehungsweise schreibt ausschließlich über `gameService`.
+
+Die Admin-Importseite hält ausgewählte Datei, Parsergebnis, lokale manuelle
+Zuordnungen, freiwillige Alias-Auswahl, Bestätigungs-, Fortschritts- und
+Ergebniszustände lokal. Analysierte Zeilen werden aus Parsergebnis, `teams`,
+vorhandenen `games` und den lokalen Zuordnungen abgeleitet. Unmittelbar vor
+einem bestätigten Import lädt der Workflow die Spiele erneut. Nach mindestens
+einem erfolgreichen Insert aktualisiert er die lokalen Referenzdaten und ruft
+`useDashboardStore.loadData()` auf; die bestehenden Filterwerte bleiben
+erhalten.
 
 Der Authstatus liegt ebenfalls nicht im Zustand-Store. `useAdminAuth` hält
 Session, Lade-, Fehler- und Adminstatus innerhalb der Anwendung und verwendet
@@ -143,8 +175,12 @@ Die Spielfilterung ordnet Spiele über `games.team_id = teams.id` einem Team zu.
 Damit ist das Repository ohne lokale Konfiguration nicht gegen ein echtes
 Supabase-Projekt lauffähig. Die initiale DB-0-Migration und Seed-Daten wurden
 laut Sprint-1B.1-Abnahme auf der konfigurierten Instanz angewendet. Sprint 1C
-ergänzt eine zweite Migration für Admin-Authentifizierung und sichere
-Schreibrechte.
+ergänzt die Admin-Authentifizierung und sichere Schreibrechte. Sprint 1C.1
+aktualisiert die offiziellen Rollenwerte. Sprint 2A ergänzt
+`teams.import_name` als optionale, fallunabhängig eindeutige
+Excel-Bezeichnung. Sprint 2B verwendet für Spiele- und optionale
+Team-Mutationen ausschließlich die bereits vorhandenen Admin-Policies;
+bestehende RLS-Regeln bleiben unverändert.
 
 Der Dashboard-Store greift direkt auf Supabase zu. Für Authentifizierung,
 Helferzuordnungen und Spiele existieren klar benannte Services. Die
@@ -172,27 +208,70 @@ bestätigt.
 
 `src/services/gameService.js`:
 
-- `getGames()`: lädt die im Dashboard nachweislich verwendeten Spielfelder sowie `id`, `name` und `category` der Teams, ordnet Teams über `team_id` zu und sortiert Spiele aufsteigend nach `start_time`.
-- `getTeams()`: lädt `id`, `name` und `category` der verfügbaren Mannschaften und sortiert sie für das Formular nach Namen.
+- `getGames()`: lädt die im Dashboard nachweislich verwendeten Spielfelder sowie die Teamdaten, ordnet Teams über `team_id` zu und sortiert Spiele aufsteigend nach `start_time`.
+- `getTeams()`: lädt `id`, `name`, `category` und `import_name` der verfügbaren Mannschaften und sortiert sie für Formulare und Import nach Namen.
 - `createGame(g)`: begrenzt den Schreib-Payload auf `team_id`, `start_time`, `opponent` und `is_home`, legt genau diesen Datensatz an und kapselt Supabase-Fehler als strukturierten `GameServiceError`. Der anschließend sichtbare Datensatz wird über `getGames()` neu gelesen.
+- `importGames(rows)`: verarbeitet ausschließlich validierte Bereit-Zeilen
+  nacheinander, schreibt nur `team_id`, `start_time`, `opponent` und
+  `is_home = true`, meldet Fortschritt und liefert Erfolge sowie Fehler je
+  Excel-Zeile getrennt zurück.
+- `saveTeamImportName(teamId, importName)`: prüft vorhandene Aliase erneut,
+  überschreibt keinen gesetzten Importnamen und behandelt Unique-Konflikte
+  verständlich.
 - `updateGame(id, g)`: begrenzt den Payload auf dieselben vier Felder, aktualisiert eindeutig anhand der Spiel-ID und gibt den aktualisierten Datensatz zurück.
 - `deleteGame(id)`: löscht eindeutig anhand der Spiel-ID, gibt die gelöschte ID zurück und unterscheidet einen Fremdschlüsselkonflikt von allgemeinen Fehlern.
 
-Alle fünf Funktionen werden von `AdminGamesPage` verwendet. Technische
+Die CRUD-Funktionen werden von `AdminGamesPage` verwendet; `getTeams()` und
+`getGames()` versorgen zusätzlich die Importvorschau, während
+`importGames()` und `saveTeamImportName()` ausschließlich den bestätigten
+Importablauf bedienen. Technische
 Supabase-Fehler werden nicht direkt in der Oberfläche ausgegeben; die Seite
 übersetzt die strukturierten Fehlercodes in verständliche Meldungen. Für Lese-
 und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 
+`src/services/gameImportService.js`:
+
+- akzeptiert ausschließlich `.xlsx`,
+- liest Dateien vollständig clientseitig mit `read-excel-file`,
+- lädt nichts in Supabase Storage oder an einen anderen Server,
+- wählt das erste nicht leere Tabellenblatt mit der benötigten Struktur,
+- gibt ausschließlich ein normalisiertes Parsergebnis zurück.
+
+`src/services/gameImportParser.js`:
+
+- normalisiert Spaltenüberschriften und Textwerte,
+- verarbeitet Excel-Datumswerte sowie unterstützte Textdaten und Uhrzeiten,
+- bestätigt Heimspiele über `H/A` oder die TVH-Heimmannschaft,
+- ordnet Teams exakt über `import_name` und optional exakt über `name` zu,
+- übernimmt manuelle Zuordnungen nur lokal für alle gleichen Excel-Namen,
+- erkennt Duplikate gegen vorhandene Spiele und innerhalb derselben Datei,
+- enthält keinerlei Supabase- oder Mutationszugriff.
+
+`src/services/gameImportModel.js`:
+
+- validiert den finalen Import-Payload unabhängig von React und Supabase,
+- erzwingt Status „Bereit“ und `is_home = true`,
+- entfernt sämtliche Excel-Zusatzfelder,
+- aggregiert vollständige Abschlussstatistiken.
+
+`src/services/gameImportWorkflow.js`:
+
+- lädt Spiele direkt vor dem Import erneut,
+- führt Parser- und Duplikatprüfung nochmals aus,
+- koordiniert freiwilliges Alias-Speichern und zeilenweise Inserts,
+- verhindert parallele Ausführung über einen Single-Flight-Controller,
+- aktualisiert Admin-Referenzdaten und Dashboard nach Teilerfolg oder Erfolg.
+
 ### Seiten und Komponenten
 
 - `App`: Anwendungsshell, interne Umschaltung zwischen Dashboard, Login und
-  geschützter Admin-Spieleübersicht sowie erneutes Laden der Dashboard-Daten
-  bei jedem Öffnen des Dashboards.
+  den geschützten Adminseiten für Spieleverwaltung und Spielimport sowie
+  erneutes Laden der Dashboard-Daten bei jedem Öffnen des Dashboards.
 - `useAdminAuth`: lokale Auth-Steuerung mit Session-, Lade-, Fehler- und
   Adminstatus; sperrt nicht freigeschaltete oder nicht prüfbare Sitzungen.
-- `Sidebar`: Navigation zwischen Dashboard und „Spiele verwalten“ mit
-  sichtbarem Aktivzustand; der Admin-Eintrag führt ohne Freigabe zum Login,
-  freigeschaltete Admins erhalten „Abmelden“.
+- `Sidebar`: Navigation zwischen Dashboard, „Spiele verwalten“ und
+  „Spielimport“ mit sichtbarem Aktivzustand; die Admin-Einträge führen ohne
+  Freigabe zum Login, freigeschaltete Admins erhalten „Abmelden“.
 - `Topbar`: konfigurierbare Überschrift und Untertitel mit den bisherigen Dashboard-Texten als Standard.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und Mannschaften für die aktuelle Filterung.
 - `FilterBar`: Team- und Kategoriefilter.
@@ -203,6 +282,16 @@ und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 - `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum, Uhrzeit, Heimteam, Gastteam und Kategorie sowie eindeutig zugeordnete Aktionen zum Bearbeiten und Löschen.
 - `GameForm`: gemeinsames, kontrolliertes Create-/Edit-Formular mit Datum, Uhrzeit, Heim-/Auswärtswahl, TVH-Team-Auswahl, Gegnername, Validierung, Vorbelegung, Ladezustand und Abbrechen.
 - `DeleteGameDialog`: modaler Bestätigungsdialog mit Spielidentifikation, Hinweis auf kaskadierte Helferzuordnungen, Ladezustand, Fehleranzeige, Abbrechen und Escape-Unterstützung.
+- `AdminGameImportPage`: geschützte Dateiauswahl mit Referenzdaten-Laden,
+  Rücksetzen, Parserfehlern, lokaler manueller Zuordnung, freiwilliger
+  Alias-Speicherung, ausdrücklicher Importbestätigung und Ergebnisanzeige.
+- `GameImportPreview`: Status-KPIs und eine horizontal scrollbare
+  Vorschautabelle mit Excel-Zeile, Team-Mapping, Gegner, Zeitpunkt und
+  verständlichen Hinweisen.
+- `GameImportConfirmDialog`: ausdrückliche Bestätigung mit importierbaren und
+  übersprungenen Zeilen sowie sichtbarem Fortschritt.
+- `GameImportResult`: Abschlussstatistik, Detailansicht für übersprungene oder
+  fehlgeschlagene Zeilen und kontrolliertes Zurücksetzen.
 
 ### Aktuell implementierte Funktionen
 
@@ -244,6 +333,24 @@ und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 - Sperren und Abmelden eines gültigen Auth-Benutzers ohne Adminfreigabe.
 - Geschütztes Rendern der Adminseite erst nach abgeschlossener Prüfung.
 - Logout mit sofortigem Wechsel zum öffentlichen Dashboard.
+- Auswahl, clientseitiges Lesen und Zurücksetzen einer `.xlsx`-Datei.
+- Prüfung der Pflichtspalten `Mannschaft`, `GAST`, `Datum`, `Anwurf` sowie
+  `H/A` oder `HEIM`.
+- Exaktes automatisches Team-Mapping über `teams.import_name` und lokales
+  manuelles Mapping für alle gleichen Excel-Mannschaftsnamen.
+- Statusdarstellung für bereite, unzugeordnete, ungültige, bereits
+  vorhandene, dateiintern doppelte und nicht als Heimspiel bestätigte Zeilen.
+- Duplikaterkennung anhand von `team_id`, `start_time` und normalisiertem
+  `opponent`.
+- Responsive Importvorschau mit dynamischem Importbutton.
+- Ausdrückliche Importbestätigung vor jeder Mutation.
+- Erneute Remote-Duplikatprüfung direkt vor dem Speichern.
+- Zeilenweiser Spieleimport mit Teilerfolgen und Fortschrittsanzeige.
+- Schutz vor Doppelklick und paralleler Importausführung.
+- Abschlussbericht mit importierten, vorhandenen, ungültigen,
+  unzugeordneten, übersprungenen und fehlgeschlagenen Zeilen.
+- Reload-freier Refresh von Importreferenzen und Dashboard-Store.
+- Freiwilliges, konfliktgeschütztes Speichern manueller Team-Aliase.
 
 Diese Funktionen sind im Code vorhanden. Die öffentlichen Lesezugriffe und der
 anonyme RLS-Fehler wurden in Sprint 1B.1 real geprüft. Die neue
@@ -258,15 +365,26 @@ wieder entfernt.
 - Anonyme Inserts in `games` bleiben absichtlich blockiert. Der Create-Pfad
   funktioniert real nur nach Anwendung der Sprint-1C-Migration und manueller
   Freischaltung eines Auth-Benutzers; dieser Ablauf ist end-to-end bestätigt.
-- Kalender, Helferansicht, Teams und Kalenderimport sind deaktiviert und haben keine Funktion.
+- Kalender, Helferansicht und Teams sind deaktiviert und haben keine Funktion.
 - Es gibt keine URL-basierte Navigation; die aktuelle Seite wird nur im lokalen Zustand von `App` gehalten.
-- Es gibt keinen Excel-Import und keinen handball.net-Import.
+- Die vollständigen 63 Spiele aus `Spiele.xlsx` sind noch nicht produktiv
+  importiert; dafür ist eine separate ausdrückliche Freigabe erforderlich.
+- Die Spiele-Duplikatprüfung erfolgt auf Anwendungsebene direkt vor dem
+  Import. Eine zusätzliche DB-Unique-Regel wurde nicht eingeführt, weil das
+  freie Gegnerfeld ohne externe fachliche Spiel-ID keine zweifelsfrei
+  belastbare Datenbankidentität liefert.
+- Es gibt keinen handball.net-Import.
 - Die MatchCard ermittelt „vollständig besetzt“ anhand der Gesamtzahl aller Spielzuordnungen. Zuordnungen zu nicht passenden Rollen können den Status verfälschen.
 - Fehler aus `helperService` werden in `MatchCard` nicht anhand des Rückgabewerts ausgewertet. Ein fehlgeschlagenes Einfügen kann daher trotzdem das Eingabefeld leeren; ein verständlicher Fehler wird nicht zuverlässig angezeigt.
 - Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die DB-0-Policy muss deshalb für die öffentliche Austragefunktion derzeit das Löschen jeder sichtbaren Zuordnung anhand ihrer ID erlauben.
 - Die DB-0-Migration verhindert namensgleiche Doppeleinträge je Spiel und Rolle ohne Beachtung der Groß-/Kleinschreibung. Eine konkurrierende Überbuchung über `helper_roles.slots` wird weiterhin nicht serverseitig verhindert.
 - Das Dashboard besitzt weiterhin keine eigene Lade-, Leer-, Netzwerkfehler- oder Wiederholungsansicht; die Admin-Spieleübersicht behandelt Laden, Fehler und leere Daten.
-- Es gibt keine automatisierten Tests und kein Testskript.
+- Die 19 automatisierten Tests decken Excel-Parser, Zeitnormalisierung,
+  Pflichtspalten, ungültige Werte, Team-Mapping, Duplikaterkennung,
+  Payloadbegrenzung, erneute Remote-Prüfung, Wiederholungsimport,
+  Mehrfachauslösung, Teilerfolge, Refresh und Alias-Konflikte ab. Für das
+  übrige Dashboard und Spiele-CRUD bestehen weiterhin keine automatisierten
+  Komponenten- oder Integrationstests.
 - Es gibt keine Deployment-Konfiguration im Repository.
 
 Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von
@@ -278,7 +396,8 @@ Admin-Authentifizierung und für Sprint 1D den Abschluss des Spiele-CRUD.
 ## 3. Datenmodell
 
 Die folgenden Angaben beschreiben die versionierte und laut Sprint-1B.1
-angewendete DB-0-Migration sowie die in Sprint 1C ergänzte Adminmigration.
+angewendete DB-0-Migration, die in Sprint 1C ergänzte Adminmigration sowie
+die Daten- und Schemaänderungen aus Sprint 1C.1 und Sprint 2A.
 
 ### `teams`
 
@@ -287,7 +406,13 @@ angewendete DB-0-Migration sowie die in Sprint 1C ergänzte Adminmigration.
 | `id` | Identifikation, Zuordnung über `games.team_id`, Wert des Teamfilters | `uuid`, Primärschlüssel, Default `gen_random_uuid()` |
 | `name` | Anzeigename in Filter und MatchCard | `text not null`, getrimmt, Länge 1–120 |
 | `category` | Filterung und Auswahl der Rollen; erwartet werden `Aktive` oder `Jugend` | `text not null`, Check auf `Aktive`/`Jugend` |
+| `import_name` | Exakte Zuordnung der Excel-Spalte `Mannschaft` | `text null`, getrimmt, Länge 1–120; partieller fallunabhängiger Unique-Index für Nicht-NULL-Werte |
 | `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
+
+Ein Feld `teams.order_index` existiert weder in der versionierten
+Basismigration noch in der aktuell konfigurierten Supabase-Instanz. Sprint 2A
+führt deshalb keine unbelegte Reihenfolgenspalte ein. Die sichtbare
+Teamreihenfolge bleibt die alphabetische Sortierung aus `gameService`.
 
 ### `games`
 
@@ -385,8 +510,10 @@ Seed enthält dieselben Werte für neue Datenbanken. Die Gesamtbedarfe betragen
 Die Liste beschreibt den eingefrorenen Zielumfang. Im Ist-Zustand sind
 Dashboard, KPIs, Filter, MatchCards, dynamische Rollen, Helferaktionen sowie
 Anzeigen, Anlegen, Bearbeiten und Löschen in der Admin-Spieleübersicht
-implementiert. Excel-Import und öffentliches Deployment sind noch nicht
-fertiggestellt.
+implementiert. Excel-Analyse, Team-Mapping, Vorschau und kontrollierter
+Spieleimport sind in Sprint 2A und Sprint 2B umgesetzt. Der produktive Import
+der vollständigen Beispieldatei und das öffentliche Deployment sind noch
+nicht freigegeben beziehungsweise fertiggestellt.
 
 ## 6. Nicht Teil des aktuellen MVP
 
@@ -397,6 +524,57 @@ fertiggestellt.
 - Komplexe Rechteverwaltung.
 - Statistiken und Historie.
 - Exporte.
+
+## Release-Backlog vor Saisonstart
+
+Die folgenden Anforderungen gehören nicht zu Sprint 2B und nicht zwingend
+zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
+
+### RB-1 – Mehrfachauswahl bei Filtern
+
+- Mehrere Teams gleichzeitig auswählbar.
+- Mehrere Kategorien gleichzeitig auswählbar.
+- Dashboard, MatchCards und KPIs berücksichtigen die gewählte Kombination.
+
+### RB-2 – Mehrfachauswahl beim Löschen von Spielen
+
+- Checkbox je Spiel.
+- Mehrere Spiele gemeinsam löschen.
+- Sicherheitsdialog mit Anzahl der Spiele.
+- Zugehörige Helferzuordnungen berücksichtigen.
+- Schutz gegen versehentliche Mehrfachauslösung.
+
+### RB-3 – Intelligente Spieltagsgruppierung
+
+- Alle Spiele desselben Datums bilden grundsätzlich einen Spieltag.
+- Spiele am Samstag und am unmittelbar folgenden Sonntag bilden gemeinsam
+  einen vollständigen Spieltag.
+- Nur Samstag bleibt ein eigener Spieltag.
+- Nur Sonntag bleibt ein eigener Spieltag.
+- Freitag oder Montag werden nicht automatisch angegliedert.
+- Gruppierung dynamisch aus `start_time` berechnen.
+- Zeitraum passend darstellen, zum Beispiel `29.–30.08.2026`.
+
+### RB-4 – Spieltagfilter
+
+- Filterwerte entsprechen den berechneten Spieltagsgruppen.
+- Samstag und der direkt folgende Sonntag erscheinen als ein Filterwert.
+- KPIs, Listen und MatchCards berücksichtigen den ausgewählten Spieltag.
+
+### RB-5 – Verbesserter Re-Import
+
+- Aktualisierte Spielplandateien erneut einlesen.
+- Vorhandene Spiele erkennen.
+- Neue Spiele hinzufügen.
+- Keine Doppelungen erzeugen.
+- Mögliche Änderungen bestehender Spiele zunächst nur analysieren und
+  verständlich anzeigen; kein ungefragtes Überschreiben.
+
+### RB-6 – Mobile Filterdarstellung
+
+- Bekannten horizontalen Overflow des Dashboard-Kategoriefilters beheben.
+- Prüfung bei 390 Pixel Breite.
+- Keine ungewollte horizontale Seitenbewegung.
 
 ## 7. Entwicklungsregeln
 
@@ -424,7 +602,10 @@ Eine Aufgabe gilt nur als fertig, wenn:
 - `git status` geprüft wurde,
 - eine klare Zusammenfassung aller geänderten Dateien und Prüfergebnisse vorliegt.
 
-Im aktuellen Repository existieren keine automatisierten Tests und kein Testskript. Bis Tests ergänzt werden, ist dieser Prüfschritt ausdrücklich als „keine Tests vorhanden“ zu dokumentieren und darf nicht als ausgeführte Testabdeckung dargestellt werden.
+Im aktuellen Repository existiert ein Testskript für die Importlogik. Der
+Definition-of-Done-Prüfschritt führt deshalb `npm test` aus; nicht abgedeckte
+Dashboard- und CRUD-Bereiche werden weiterhin ausdrücklich als manuell
+geprüft dokumentiert.
 
 ## 9. Versionsplan
 
@@ -438,5 +619,12 @@ Im aktuellen Repository existieren keine automatisierten Tests und kein Testskri
 - **V24.0.5.4:** Sprint 1D schließt die Spielverwaltung mit Bearbeiten,
   bestätigtem Löschen und unmittelbarer Aktualisierung von Adminliste und
   Dashboard ab.
-- **V24.0.6:** Excel-Import nach Fertigstellung des Spiele-CRUD.
+- **V24.0.5.5:** Sprint 2A bereitet den Excel-Import mit `import_name`,
+  clientseitigem Parser, Team-Mapping, Duplikaterkennung und Vorschau vor,
+  ohne Spiele zu importieren.
+- **V24.0.5.6:** Sprint 2B ergänzt bestätigten Spieleimport, erneute
+  Remote-Duplikatprüfung, Teilergebnisse, Refresh und das freiwillige
+  Speichern manueller Aliase.
+- **V24.0.6:** Produktivfreigabe des vollständigen Excel-Spielplans und
+  öffentliches Deployment.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

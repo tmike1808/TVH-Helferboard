@@ -1,18 +1,22 @@
--- TVH Helferboard: anpassbare Beispielteams und offizielle Helferrollen.
--- Vor Ausführung in einem Vereinsprojekt die Beispielteamnamen prüfen.
+-- TVH Helferboard: Vereinsmannschaften und offizielle Helferrollen.
 -- Das Skript enthält nur Daten; das Schema kommt aus den Migrationen.
 
 begin;
 
--- ANPASSBARE BEISPIELTEAMS.
-insert into public.teams (name, category)
+-- VEREINSMANNSCHAFTEN MIT EINDEUTIGEN EXCEL-IMPORTNAMEN.
+insert into public.teams (name, category, import_name)
 values
-  ('TVH Herren 1', 'Aktive'),
-  ('TVH Damen 1', 'Aktive'),
-  ('TVH Männliche Jugend A', 'Jugend'),
-  ('TVH Weibliche Jugend B', 'Jugend')
+  ('TVH Herren 1', 'Aktive', 'Herren 1'),
+  ('TVH Herren 2', 'Aktive', 'Herren 2'),
+  ('TVH Männliche Jugend D 1', 'Jugend', 'mD1'),
+  ('TVH Männliche Jugend D 2', 'Jugend', 'mD2'),
+  ('TVH Männliche Jugend E', 'Jugend', 'mE'),
+  ('TVH Weibliche Jugend C', 'Jugend', 'wC'),
+  ('TVH Weibliche Jugend D', 'Jugend', 'wD'),
+  ('TVH Weibliche Jugend E', 'Jugend', 'wE')
 on conflict (name, category)
 do update set
+  import_name = excluded.import_name,
   updated_at = now();
 
 -- OFFIZIELLE VEREINSWERTE:

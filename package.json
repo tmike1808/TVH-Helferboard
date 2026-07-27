@@ -1,4 +1,3 @@
-
 {
   "name": "tvh-v24-core-merge-fixed",
   "private": true,
@@ -6,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
     "lucide-react": "^0.511.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "read-excel-file": "^9.3.4",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

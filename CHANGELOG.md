@@ -1,5 +1,31 @@
 # Changelog
 
+## V24.0.5.6 – Sprint 2B
+- Bestätigten Excel-Import für ausschließlich erneut geprüfte Heimspiele ergänzt
+- Vor jeder Mutation vorhandene Spiele erneut geladen und Remote- sowie Dateiduplikate nochmals geprüft
+- Zeilenweise Insert-Strategie mit exakten Payload-Feldern, Fortschritt und nachvollziehbaren Teilerfolgen umgesetzt
+- Bestätigungsdialog, synchroner Mehrfachauslösungsschutz und verständlicher Abschlussbericht ergänzt
+- Admin-Referenzdaten und Dashboard-Store nach erfolgreichen Imports ohne Seitenreload aktualisiert
+- Freiwilliges Speichern manueller `import_name`-Zuordnungen ohne Überschreiben vorhandener Aliase vorbereitet
+- Keine neue Spiele-Unique-Regel eingeführt, da ohne fachliche Spiel-ID keine zweifelsfrei belastbare Datenbankidentität belegt ist
+- Zehn zusätzliche Workflow-, Duplikat-, Payload-, Fehler-, Refresh- und Alias-Tests ergänzt
+- Die vollständige `Spiele.xlsx` bleibt bis zur ausdrücklichen Produktivfreigabe unangetastet
+
+## V24.0.5.5 – Sprint 2A
+- Geschützte Adminseite „Spielimport“ mit rein clientseitiger `.xlsx`-Dateiauswahl ergänzt
+- Excel-Blätter, Spaltenüberschriften, Datum und Anwurfzeit robust normalisiert
+- Importvorschau mit Statusübersicht, verständlichen Fehlern und responsive Tabelle mit horizontalem Scrollbereich umgesetzt
+- Automatisches Team-Mapping über das neue nullable Feld `teams.import_name` ergänzt
+- Eindeutige fallunabhängige Importnamen über einen partiellen Unique-Index abgesichert
+- Vier anhand der echten Teamliste und `Spiele.xlsx` belegte Importnamen in Migration und Seed hinterlegt
+- Fehlende Jugendteams `mD1`, `mD2`, `wC` und `wE` über eine reine Datenmigration und den Seed ergänzt
+- Kein `teams.order_index` erfunden: Das Feld existiert weder im versionierten Schema noch in der aktuellen Instanz
+- Lokales manuelles Mapping für alle gleichen Excel-Mannschaftsnamen umgesetzt
+- Duplikate gegen vorhandene Supabase-Spiele und innerhalb derselben Datei erkannt
+- Kein Schreiben auf `games` oder `teams` aus der Importvorschau; Import bleibt für Sprint 2B deaktiviert
+- Neun automatisierte Parser-, Normalisierungs- und Negativtests mit Node Test ergänzt
+- `read-excel-file` als einzige neue Laufzeitabhängigkeit ergänzt; die bevorzugte Bibliothek `xlsx` wegen ungefixter hoher Sicherheitsmeldungen verworfen
+
 ## V24.0.5.4 – Sprint 1D
 - Admin-Spielverwaltung um Bearbeiten und bestätigtes Löschen erweitert
 - `gameService` mit strukturierten Update-/Delete-Abläufen und begrenzten Schreib-Payloads vervollständigt

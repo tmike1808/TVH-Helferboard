@@ -1,5 +1,17 @@
 # Changelog
 
+## V24.0.5.3 – Sprint 1C
+- Admin-Authentifizierung über Supabase Auth mit E-Mail und Passwort
+- Adminfreigabe ausschließlich über `public.admin_users`
+- Sichere, RLS-taugliche Funktion `public.is_admin()` mit begrenztem Ausführungsrecht
+- Insert-, Update- und Delete-Policies für `games`, `teams` und `helper_roles` ausschließlich für freigeschaltete Admins
+- Bestehende öffentliche Lese- und Helferrechte unverändert beibehalten
+- Kontrollierte Login-Seite ohne Registrierung, Passwort-Reset oder Social Login
+- Sessionprüfung beim App-Start und Reaktion auf Auth-Statusänderungen
+- Geschützter Adminbereich ohne kurzzeitiges Anzeigen vor abgeschlossener Berechtigungsprüfung
+- Logout mit sofortiger lokaler Sperrung und Rückkehr zum Dashboard
+- Keine neue Routing- oder State-Abhängigkeit
+
 ## DB-0 – Reproduzierbare Supabase-Datenbankgrundlage
 - Initiale Migration für `teams`, `games`, `helper_roles` und `helper_assignments`
 - UUID-Schlüssel, Fremdschlüssel, Constraints, Zeitstempel und Indizes festgelegt

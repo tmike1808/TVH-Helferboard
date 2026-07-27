@@ -137,7 +137,69 @@ Dadurch wird „Neues Spiel“ gegen diese sichere RLS-Konfiguration mit einem B
 
 Dieser Konflikt darf nicht durch eine öffentliche Insert-Policy auf `games` oder durch einen privilegierten Schlüssel im Frontend umgangen werden.
 
-## 9. Bekannte MVP-Sicherheitsgrenzen
+## 9. Admin-Authentifizierung einrichten
+
+Sprint 1C ergänzt die Migration:
+
+- `supabase/migrations/20260727000200_admin_auth.sql`
+
+Sie legt `public.admin_users` und die RLS-Hilfsfunktion
+`public.is_admin()` an. Zusätzlich erlaubt sie Insert, Update und Delete auf
+`games`, `teams` und `helper_roles` ausschließlich authentifizierten
+Benutzern, deren Auth-User-ID in `admin_users` freigeschaltet ist. Die
+öffentlichen Select-Policies und die bestehenden Policies für
+`helper_assignments` bleiben unverändert.
+
+### Migration ausführen
+
+1. Im richtigen Supabase-Projekt den **SQL Editor** öffnen.
+2. Den vollständigen Inhalt von
+   `supabase/migrations/20260727000200_admin_auth.sql` einfügen.
+3. Die Abfrage genau einmal ausführen.
+4. Prüfen, dass die Tabelle `public.admin_users` und die Funktion
+   `public.is_admin()` vorhanden sind.
+
+Es darf keine allgemeine Schreibpolicy für die Rolle `authenticated`
+hinzugefügt werden. Die Migration erteilt zwar die erforderlichen
+Tabellenrechte an `authenticated`, jede Mutation wird aber zusätzlich durch
+eine RLS-Policy mit `public.is_admin()` geschützt.
+
+### Festen Admin-Benutzer anlegen
+
+1. Das Supabase-Dashboard öffnen.
+2. **Authentication → Users** öffnen.
+3. Einen Benutzer mit E-Mail-Adresse und starkem Passwort anlegen.
+4. Die UUID dieses Benutzers kopieren.
+5. Im SQL Editor exakt folgende Freischaltung mit der kopierten UUID
+   ausführen:
+
+```sql
+insert into public.admin_users (user_id)
+values ('AUTH-USER-UUID');
+```
+
+6. Die Freischaltung prüfen:
+
+```sql
+select user_id, created_at
+from public.admin_users;
+```
+
+Die echte E-Mail-Adresse, UUID und das Passwort gehören weder in diese
+Dokumentation noch in Quellcode, Screenshots, Reports oder Git.
+
+### Adminrechte wieder entziehen
+
+```sql
+delete from public.admin_users
+where user_id = 'AUTH-USER-UUID';
+```
+
+Das Löschen aus `admin_users` entzieht nur die Adminrechte. Das zugehörige
+Auth-Konto bleibt in **Authentication → Users** bestehen und kann dort bei
+Bedarf getrennt verwaltet werden.
+
+## 10. Bekannte MVP-Sicherheitsgrenzen
 
 - Helfer besitzen noch keine Konten oder Austrage-Tokens. Deshalb kann die öffentliche Delete-Policy technisch jede sichtbare Helferzuordnung anhand ihrer ID löschen. Ein späteres Besitz- oder Tokenkonzept sollte dies einschränken.
 - `helper_assignments` ist gemäß MVP-Vorgabe öffentlich lesbar; damit sind eingetragene Helfernamen öffentlich. Datenschutz und Namenshinweise müssen vor dem öffentlichen Betrieb fachlich bewertet werden.

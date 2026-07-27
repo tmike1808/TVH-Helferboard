@@ -5,9 +5,34 @@ Analysierter Ausgangspunkt: Commit `51bd47d` (`Version 24.0.5`)
 
 Diese Datei dokumentiert ausschließlich den vorhandenen Zustand und den konkreten Plan für das spätere Spiele-CRUD. In dieser Phase wurden keine funktionalen Änderungen am Anwendungscode vorgenommen.
 
+## Status Sprint 1C
+
+**Sprint 1C implementiert die Sicherheitsgrundlage für feste
+Admin-Benutzer, ohne eine neue Routing- oder State-Abhängigkeit einzuführen.**
+
+- `supabase/migrations/20260727000200_admin_auth.sql` ergänzt
+  `public.admin_users`, die abgeschirmte Funktion `public.is_admin()` und
+  getrennte Admin-Policies für Insert, Update und Delete auf `games`, `teams`
+  und `helper_roles`.
+- Ein beliebiger Benutzer der Supabase-Rolle `authenticated` erhält ohne
+  Eintrag in `admin_users` keine Admin-Schreibrechte.
+- `authService` kapselt `getSession()`, `onAuthStateChange()`,
+  `signInWithPassword()`, `signOut()` und die Adminprüfung per RPC.
+- `useAdminAuth` hält Session-, Lade-, Fehler- und Adminstatus lokal zur
+  Anwendung. Der bestehende Zustand-Store wird nicht um Authdaten erweitert.
+- `AdminLoginPage` validiert E-Mail und Passwort, verhindert paralleles
+  Absenden und bietet weder Registrierung noch Passwort-Reset an.
+- `App` rendert geschützte Inhalte erst nach bestätigter Adminfreigabe. Der
+  sichtbare Eintrag „Spiele verwalten“ führt ohne Freigabe zur Login-Seite.
+- Ein freigeschalteter Admin erhält in der Sidebar eine Abmeldeaktion. Logout
+  wechselt sofort zum öffentlichen Dashboard und sperrt den Admininhalt.
+- Die reale Migration, manuelle Adminanlage und der echte Create-/Cleanup-Test
+  werden im Sprint-Report getrennt vom statisch geprüften Code dokumentiert.
+
 ## Status DB-0
 
-**DB-0 ist im aktuellen Arbeitsbaum als versionierte, noch nicht ausgeführte Datenbankgrundlage umgesetzt.**
+**DB-0 ist versioniert und wurde laut Sprint-1B.1-Abnahme auf der
+konfigurierten Supabase-Instanz ausgeführt.**
 
 - `supabase/migrations/20260727000100_initial_schema.sql` definiert die vier vom Code verwendeten Tabellen mit UUID-Schlüsseln, `games.start_time` als `timestamptz`, Fremdschlüsseln, Indizes, Constraints und Löschregeln.
 - `helper_roles.slots` bleibt das verbindliche Mengenfeld, weil ausschließlich dieser Name im Anwendungscode belegt ist.
@@ -16,13 +41,18 @@ Diese Datei dokumentiert ausschließlich den vorhandenen Zustand und den konkret
 - Für `teams`, `games` und `helper_roles` existieren keine anonymen Schreibrechte oder Schreib-Policies.
 - `supabase/seed.sql` enthält anpassbare Beispielteams und die vorgegebenen Rollenfolgen. Alle Slot-Werte sind mangels Vereinsvorgabe ausdrücklich vorläufig.
 - `SUPABASE_SETUP.md` beschreibt die einmalige SQL-Editor-Anwendung, Seed-Ausführung, lokale Vite-Konfiguration und Sicherheitsgrenzen.
-- Es wurde kein SQL lokal oder remote ausgeführt. Die Prüfung war statisch; `psql`, Supabase CLI und Docker waren nicht verfügbar.
+- Die ursprüngliche DB-0-Prüfung war statisch. Sprint 1B.1 bestätigte danach
+  reale öffentliche Lesezugriffe auf alle vier Tabellen und die erwartete
+  RLS-Ablehnung eines anonymen Spiele-Inserts.
 
-Der zentrale Sicherheitskonflikt bleibt bewusst offen: Sprint 1B ist implementiert, die reale Datenbankabnahme steht aus. Ohne Admin-Authentifizierung blockiert die sichere DB-0-RLS-Konfiguration den anonymen Insert in `games`.
+Sprint 1C löst den offenen Sicherheitskonflikt durch Supabase Auth und eine
+Freigabeliste in `admin_users`, ohne anonyme Schreibrechte einzuführen.
 
 ## Status Sprint 1B
 
-**Sprint 1B ist im aktuellen Arbeitsbaum implementiert, die reale Datenbankabnahme steht aus.** Schritt 7 des Plans ist für den nachweisbaren Datenbankvertrag abgeschlossen:
+**Sprint 1B ist implementiert und gegen die echte Supabase-Instanz lesend
+sowie im erwarteten anonymen Fehlerpfad geprüft.** Schritt 7 des Plans ist für
+den nachweisbaren Datenbankvertrag abgeschlossen:
 
 - `GameForm` bildet `team_id`, `opponent`, `is_home` und `start_time` als kontrolliertes Create-Formular ab.
 - Die TVH-Mannschaft wird über lesbare Namen aus `teams` ausgewählt; `opponent` bleibt entsprechend dem vorhandenen Schema ein Gegnername.
@@ -32,9 +62,15 @@ Der zentrale Sicherheitskonflikt bleibt bewusst offen: Sprint 1B ist implementie
 - `AdminGamesPage` hält Formular- und Speicherzustand lokal, verhindert synchron doppeltes Absenden und lädt die sortierte Adminliste nach Erfolg erneut.
 - `App` lädt die Dashboard-Daten bei jedem erneuten Öffnen des Dashboards; Adminformularzustand wurde nicht in den globalen Store verschoben.
 - Supabase wird über `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` konfiguriert; `.env.example` enthält nur Platzhalter.
-- Update, Delete, Excel-Import, Authentifizierung, RLS-Änderungen und Routing bleiben außerhalb von Sprint 1B.
+- Update, Delete, Excel-Import, Authentifizierung, RLS-Änderungen und Routing
+  blieben außerhalb von Sprint 1B; Authentifizierung und sichere
+  Admin-Schreibrechte folgen in Sprint 1C.
 
-Browserseitig wurden die UI- und Fehlerpfade mit kontrollierten lokalen REST-Antworten geprüft. Da keine echten lokalen Supabase-Zugangsdaten vorhanden waren, ist ein erfolgreicher Schreibvorgang gegen das reale Supabase-Projekt nicht nachgewiesen.
+Browserseitig wurden die UI- und Fehlerpfade zunächst mit kontrollierten
+lokalen REST-Antworten geprüft. Sprint 1B.1 bestätigte anschließend die echten
+Lesezugriffe und den RLS-Fehler `42501` für den absichtlich nicht
+authentifizierten Insert. Ein erfolgreicher Admin-Schreibvorgang ist Teil der
+Sprint-1C-Abnahme.
 
 ## Status Sprint 1A.1
 

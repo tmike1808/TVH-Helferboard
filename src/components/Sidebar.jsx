@@ -4,12 +4,16 @@ import {
   Calendar,
   Users,
   Shield,
-  ClipboardList
+  ClipboardList,
+  LogOut
 } from 'lucide-react'
 
 export default function Sidebar({
   activePage = 'dashboard',
-  onNavigate
+  isAdmin = false,
+  authLoading = false,
+  onNavigate,
+  onLogout
 }) {
 
   return (
@@ -78,6 +82,17 @@ export default function Sidebar({
         />
 
       </nav>
+
+      {isAdmin && (
+        <div className="mt-8 border-t border-white/10 pt-6">
+          <NavItem
+            icon={<LogOut size={18} />}
+            label={authLoading ? 'Abmeldung läuft …' : 'Abmelden'}
+            disabled={authLoading}
+            onClick={onLogout}
+          />
+        </div>
+      )}
 
     </aside>
   )

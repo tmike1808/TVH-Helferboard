@@ -1,12 +1,17 @@
 # TVH Helfer Dashboard
 
-Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage sind der Commit `5624894` (`V24.0.5.1 Sprint 1A`), der Arbeitsstand von Sprint 1B und die in DB-0 erstellte, noch nicht remote ausgeführte Supabase-Grundlage.
+Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage sind der Commit
+`3ddb9b1` (`V24.0.5.2 Sprint 1B`) und der Arbeitsstand von Sprint 1C.
 
 ## 1. Projektziel
 
 Das Projekt soll ein öffentliches Helferboard für den TV Homburg Handball bereitstellen. Helfer sollen sich ohne Benutzerkonto für Aufgaben bei Spielen eintragen und wieder austragen können. Ein Adminbereich soll Spiele verwalten und später Importe ermöglichen. Hauptziel ist eine stabile, öffentlich nutzbare MVP-Version.
 
-Der derzeitige Code bildet dieses Ziel teilweise ab: Das Helfer-Dashboard ist implementiert, benötigt aber eine gültige lokale Supabase-Konfiguration und passende Datenbankregeln. Der Adminbereich ist über die Sidebar erreichbar, zeigt Spiele an und besitzt seit Sprint 1B einen Ablauf zum Anlegen. Bearbeiten und Löschen sind noch nicht implementiert.
+Der derzeitige Code bildet dieses Ziel teilweise ab: Das Helfer-Dashboard
+bleibt öffentlich erreichbar. Der Adminbereich ist über die Sidebar
+erreichbar, wird durch Supabase Auth und eine Freigabe in `admin_users`
+geschützt, zeigt Spiele an und besitzt einen Ablauf zum Anlegen. Bearbeiten und
+Löschen sind noch nicht implementiert.
 
 ## 2. Technischer Ist-Zustand
 
@@ -42,7 +47,11 @@ Es gibt keine Skripte für Tests, Linting, Formatierung oder Vorschau.
 2. `src/main.jsx` initialisiert React mit `ReactDOM.createRoot`, aktiviert `React.StrictMode`, lädt die globalen Styles und rendert `App`.
 3. `src/App.jsx` lädt beim Mounten die Dashboard-Daten, rendert Sidebar, Topbar, KPIs, Filter und die gefilterten MatchCards.
 
-Es ist kein Client-Router installiert. `App` schaltet für die aktuell zwei benötigten Ansichten über lokalen React-Zustand zwischen Dashboard und `AdminGamesPage` um. Die Adminseite ist damit ohne Browser-Reload über die Sidebar erreichbar, besitzt aber keine eigene URL und ist nach einem Browser-Reload nicht als separate Route wiederherstellbar.
+Es ist kein Client-Router installiert. `App` schaltet über lokalen
+React-Zustand zwischen Dashboard, Admin-Login und geschützter
+`AdminGamesPage` um. Die Admin-Session bleibt durch den Supabase-Client nach
+einem Browser-Reload erhalten; die ausgewählte Seite besitzt weiterhin keine
+eigene URL und startet nach einem Reload wieder beim Dashboard.
 
 ### Aktuelle Verzeichnisstruktur
 
@@ -70,7 +79,8 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 │   └── DB-0-Supabase-Grundlage.md
 ├── supabase/
 │   ├── migrations/
-│   │   └── 20260727000100_initial_schema.sql
+│   │   ├── 20260727000100_initial_schema.sql
+│   │   └── 20260727000200_admin_auth.sql
 │   └── seed.sql
 ├── tailwind.config.js
 ├── vite.config.js
@@ -89,9 +99,13 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     │       └── GameTable.jsx
     ├── lib/
     │   └── supabase.js
+    ├── hooks/
+    │   └── useAdminAuth.js
     ├── pages/
-    │   └── AdminGamesPage.jsx
+    │   ├── AdminGamesPage.jsx
+    │   └── AdminLoginPage.jsx
     ├── services/
+    │   ├── authService.js
     │   ├── gameService.js
     │   └── helperService.js
     ├── store/
@@ -113,6 +127,10 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 
 Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält Spiele, Teams, Lade-, Formular-, Speicher- und Meldungszustände lokal in `AdminGamesPage` und lädt beziehungsweise schreibt ausschließlich über `gameService`.
 
+Der Authstatus liegt ebenfalls nicht im Zustand-Store. `useAdminAuth` hält
+Session, Lade-, Fehler- und Adminstatus innerhalb der Anwendung und verwendet
+dafür ausschließlich `authService`.
+
 `loadData` liest alle vier Tabellen direkt über den Supabase-Client und speichert die Ergebnisse im Store. Die Abfragen laufen nacheinander. Ladezustände und sichtbare Fehlerzustände werden nicht verwaltet. Erfolgreiche `data: null`-Antworten werden auf leere Arrays normalisiert. Bei Supabase-Fehlern bleiben die zuletzt gültigen Store-Daten erhalten und technische Details werden protokolliert; eine sichtbare Dashboard-Fehlermeldung gibt es weiterhin nicht. Unerwartete Promise-Fehler aus `loadData()` werden in `App` abgefangen.
 
 Die Spielfilterung ordnet Spiele über `games.team_id = teams.id` einem Team zu. Der Teamfilter vergleicht die ausgewählte Select-Zeichenkette mit `team.id`; falls die Datenbank numerische IDs liefert, kann der strikte Vergleich fehlschlagen. Der Kategoriefilter vergleicht `team.category` mit `Aktive` oder `Jugend`.
@@ -121,11 +139,29 @@ Die Spielfilterung ordnet Spiele über `games.team_id = teams.id` einem Team zu.
 
 `src/lib/supabase.js` erzeugt einen Client mit `createClient` und liest die lokale Konfiguration ausschließlich aus den Vite-Umgebungsvariablen `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY`. `.env.example` dokumentiert beide Namen mit Platzhalterwerten. Lokale Werte gehören in die ignorierte `.env.local`. Fehlen Werte, wird eine verständliche Konsolenwarnung ausgegeben und ein nicht produktiver Fallback verwendet, damit die Oberfläche ihren behandelten Ladefehler anzeigen kann.
 
-Damit ist das Repository ohne lokale Konfiguration nicht gegen ein echtes Supabase-Projekt lauffähig. Seit DB-0 existieren eine versionierte initiale Migration, reproduzierbare Seed-Daten und dokumentierte Row-Level-Security-Policies. Sie wurden in dieser Aufgabe ausschließlich statisch geprüft und noch auf keine lokale oder entfernte Datenbank angewendet.
+Damit ist das Repository ohne lokale Konfiguration nicht gegen ein echtes
+Supabase-Projekt lauffähig. Die initiale DB-0-Migration und Seed-Daten wurden
+laut Sprint-1B.1-Abnahme auf der konfigurierten Instanz angewendet. Sprint 1C
+ergänzt eine zweite Migration für Admin-Authentifizierung und sichere
+Schreibrechte.
 
-Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Spiele existieren zusätzlich Services. Authentifizierung oder Autorisierung ist im Frontend nicht implementiert. Die DB-0-Migration erlaubt öffentliches Lesen sowie Insert und Delete für `helper_assignments`, aber keine anonymen Admin-Schreibzugriffe auf `teams`, `games` oder `helper_roles`. Deshalb ist Sprint 1B implementiert, die reale Datenbankabnahme steht jedoch aus und `gameService.createGame()` wird an der sicheren RLS-Grundlage ohne spätere Admin-Authentifizierung erwartungsgemäß scheitern.
+Der Dashboard-Store greift direkt auf Supabase zu. Für Authentifizierung,
+Helferzuordnungen und Spiele existieren klar benannte Services. Die
+DB-0-Migration erlaubt öffentliches Lesen sowie Insert und Delete für
+`helper_assignments`, aber keine anonymen Admin-Schreibzugriffe. Die
+Sprint-1C-Migration erteilt authentifizierten Clients die nötigen
+Tabellenrechte, lässt Mutationen auf `teams`, `games` und `helper_roles` über
+RLS jedoch nur zu, wenn `public.is_admin()` einen Eintrag in `admin_users`
+bestätigt.
 
 ### Services
+
+`src/services/authService.js`:
+
+- lädt die bestehende Supabase-Session,
+- abonniert Auth-Statusänderungen,
+- meldet per E-Mail und Passwort an und ab,
+- prüft die Adminfreigabe ausschließlich über den RPC-Aufruf `is_admin`.
 
 `src/services/helperService.js`:
 
@@ -145,13 +181,21 @@ Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Sp
 
 ### Seiten und Komponenten
 
-- `App`: Anwendungsshell, interne Umschaltung zwischen Dashboard und Admin-Spieleübersicht sowie erneutes Laden der Dashboard-Daten bei jedem Öffnen des Dashboards.
-- `Sidebar`: Navigation zwischen Dashboard und „Spiele verwalten“ mit sichtbarem Aktivzustand; noch nicht implementierte Ziele sind deaktiviert.
+- `App`: Anwendungsshell, interne Umschaltung zwischen Dashboard, Login und
+  geschützter Admin-Spieleübersicht sowie erneutes Laden der Dashboard-Daten
+  bei jedem Öffnen des Dashboards.
+- `useAdminAuth`: lokale Auth-Steuerung mit Session-, Lade-, Fehler- und
+  Adminstatus; sperrt nicht freigeschaltete oder nicht prüfbare Sitzungen.
+- `Sidebar`: Navigation zwischen Dashboard und „Spiele verwalten“ mit
+  sichtbarem Aktivzustand; der Admin-Eintrag führt ohne Freigabe zum Login,
+  freigeschaltete Admins erhalten „Abmelden“.
 - `Topbar`: konfigurierbare Überschrift und Untertitel mit den bisherigen Dashboard-Texten als Standard.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und Mannschaften für die aktuelle Filterung.
 - `FilterBar`: Team- und Kategoriefilter.
 - `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige sowie Ein- und Austragen von Helfern.
 - `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-, Leer-, Formular-, Speicher- und Meldungszustand; orchestriert Lesen und Anlegen über `gameService`.
+- `AdminLoginPage`: kontrolliertes Loginformular mit Pflichtfeldprüfung,
+  Ladezustand, Doppelklickschutz und Rückkehr zum Dashboard.
 - `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum, Uhrzeit, Heimteam, Gastteam und Kategorie.
 - `GameForm`: kontrolliertes, beschriftetes Create-Formular mit Datum, Uhrzeit, Heim-/Auswärtswahl, TVH-Team-Auswahl, Gegnername, Validierung, Ladezustand und Abbrechen.
 - `DeleteGameDialog`: leerer Platzhalter, der `null` zurückgibt.
@@ -180,13 +224,27 @@ Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Sp
 - Anlegen über `gameService.createGame()` mit sichtbarem Lade-, Erfolgs- und Fehlerzustand sowie synchronem Doppelklickschutz.
 - Neuladen und sortierte Darstellung der Adminliste nach erfolgreichem Anlegen.
 - Erneutes Laden aller Dashboard-Daten beim nächsten Öffnen des Dashboards.
+- Laden und Wiederherstellen einer bestehenden Supabase-Session.
+- Reaktion auf Änderungen des Supabase-Authstatus.
+- Login mit E-Mail und Passwort ohne öffentliche Registrierung.
+- Prüfung der Adminfreigabe ausschließlich über `admin_users`.
+- Sperren und Abmelden eines gültigen Auth-Benutzers ohne Adminfreigabe.
+- Geschütztes Rendern der Adminseite erst nach abgeschlossener Prüfung.
+- Logout mit sofortigem Wechsel zum öffentlichen Dashboard.
 
-Diese Funktionen sind im Code vorhanden. Sprint 1B ist implementiert, die reale Datenbankabnahme steht aus. Die DB-0-Migration wurde nicht remote ausgeführt; insbesondere sind RLS-Verhalten und der erfolgreiche Admin-Schreibvorgang gegen ein echtes Projekt nicht end-to-end nachgewiesen.
+Diese Funktionen sind im Code vorhanden. Die öffentlichen Lesezugriffe und der
+anonyme RLS-Fehler wurden in Sprint 1B.1 real geprüft. Die neue
+Adminmigration, Sessionwiederherstellung, Nicht-Admin-Sperre und der
+erfolgreiche Admin-Schreibvorgang wurden in Sprint 1C gegen die konfigurierte
+Instanz abgenommen. Alle temporären Testdaten und Auth-Konten wurden danach
+wieder entfernt.
 
 ### Platzhalter, unvollständige Funktionen und bekannte Abweichungen
 
 - Ohne lokale Umgebungsvariablen ist keine echte Supabase-Verbindung vorhanden.
-- Die sichere DB-0-RLS-Grundlage blockiert anonyme Inserts in `games`; der Sprint-1B-Create-Pfad benötigt vor der realen Abnahme eine Admin-Authentifizierung und darauf begrenzte Policies.
+- Anonyme Inserts in `games` bleiben absichtlich blockiert. Der Create-Pfad
+  funktioniert real nur nach Anwendung der Sprint-1C-Migration und manueller
+  Freischaltung eines Auth-Benutzers; dieser Ablauf ist end-to-end bestätigt.
 - Der Adminbereich kann lesen und anlegen; Update und Delete fehlen.
 - `DeleteGameDialog` ist weiterhin ein Platzhalter.
 - Kalender, Helferansicht, Teams und Kalenderimport sind deaktiviert und haben keine Funktion.
@@ -206,7 +264,8 @@ Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von N
 
 ## 3. Datenmodell
 
-Die folgenden Angaben beschreiben die mit dem Code kompatible DB-0-Migration. Diese Definitionen sind versioniert, wurden aber noch nicht gegen eine echte Supabase-Instanz ausgeführt.
+Die folgenden Angaben beschreiben die versionierte und laut Sprint-1B.1
+angewendete DB-0-Migration sowie die in Sprint 1C ergänzte Adminmigration.
 
 ### `teams`
 
@@ -252,6 +311,18 @@ Die folgenden Angaben beschreiben die mit dem Code kompatible DB-0-Migration. Di
 | `created_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()` |
 
 DB-0 ergänzt einen eindeutigen Index auf `game_id`, `role_id` und `lower(helper_name)` sowie einen Trigger, der nur Rollen aus der Kategorie des Spielteams zulässt. Ein serverseitiger Schutz vor Überbuchung anhand von `slots` ist noch nicht enthalten.
+
+### `admin_users`
+
+| Feld | Verwendung | Definition in Sprint 1C |
+| --- | --- | --- |
+| `user_id` | Freigabe einer Supabase-Auth-Identität als Admin | `uuid`, Primärschlüssel und Fremdschlüssel auf `auth.users(id)`, `ON DELETE CASCADE` |
+| `created_at` | Zeitpunkt der Adminfreigabe | `timestamptz not null`, Default `now()` |
+
+RLS ist aktiviert. Direkte Tabellenrechte werden weder `anon` noch
+`authenticated` erteilt. Die als `SECURITY DEFINER` ausgeführte Funktion
+`public.is_admin()` prüft `auth.uid()` bei leerem `search_path`; ausführen darf
+sie nur die Rolle `authenticated`.
 
 ## 4. Fachliche Regeln
 
@@ -336,6 +407,11 @@ Im aktuellen Repository existieren keine automatisierten Tests und kein Testskri
 ## 9. Versionsplan
 
 - **V24.0.5:** vorhandene Ausgangsversion. Admin-Grundstruktur und Spiele-Service sind vorbereitet; ein funktionaler Adminbereich fehlt.
-- **V24.0.5.1:** Adminbereich für Spiele; Sprint 1A mit Navigation und Leseansicht sowie Sprint 1B mit Create sind umgesetzt. DB-0 liefert die versionierte, noch nicht angewendete Datenbankgrundlage. Die reale Datenbankabnahme sowie Update und Delete stehen noch aus.
+- **V24.0.5.1/V24.0.5.2:** Adminbereich für Spiele; Sprint 1A mit
+  Navigation und Leseansicht sowie Sprint 1B mit Create und angewendeter
+  DB-0-Grundlage.
+- **V24.0.5.3:** Sprint 1C mit Supabase-Admin-Authentifizierung,
+  `admin_users` und sicheren Schreibrechten. Die reale Admin-Abnahme wird im
+  Sprint-Report dokumentiert.
 - **V24.0.6:** Excel-Import nach Fertigstellung des Spiele-CRUD.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

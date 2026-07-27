@@ -14,32 +14,55 @@ export const useDashboardStore = create((set, get) => ({
 
   loadData: async () => {
 
-    const { data: games = [] } =
+    const { data: games, error: gamesError } =
       await supabase.from('games').select('*')
 
-    const { data: teams = [] } =
+    const { data: teams, error: teamsError } =
       await supabase.from('teams').select('*')
 
-    const { data: roles = [] } =
+    const { data: roles, error: rolesError } =
       await supabase.from('helper_roles').select('*')
 
-    const { data: assignments = [] } =
+    const { data: assignments, error: assignmentsError } =
       await supabase.from('helper_assignments').select('*')
 
+    const currentState = get()
+
     set({
-      games,
-      teams,
-      roles,
-      assignments
+      games: gamesError ? currentState.games : games ?? [],
+      teams: teamsError ? currentState.teams : teams ?? [],
+      roles: rolesError ? currentState.roles : roles ?? [],
+      assignments: assignmentsError
+        ? currentState.assignments
+        : assignments ?? []
     })
+
+    const errors = [
+      gamesError,
+      teamsError,
+      rolesError,
+      assignmentsError
+    ].filter(Boolean)
+
+    if (errors.length > 0) {
+      console.error(
+        'Dashboard-Daten konnten nicht vollständig geladen werden.',
+        errors
+      )
+    }
   },
 
   reloadAssignments: async () => {
 
-    const { data: assignments = [] } =
+    const { data: assignments, error } =
       await supabase.from('helper_assignments').select('*')
 
-    set({ assignments })
+    if (error) {
+      console.error('Helferzuordnungen konnten nicht geladen werden.', error)
+      return
+    }
+
+    set({ assignments: assignments ?? [] })
   },
 
   setSelectedTeam: (team) =>

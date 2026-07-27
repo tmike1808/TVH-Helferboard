@@ -1,15 +1,18 @@
 
-export default function Topbar() {
+export default function Topbar({
+  title = 'TV Homburg Dashboard',
+  subtitle = 'V24 CORE MERGE'
+}) {
 
   return (
     <header className="mb-8">
 
-      <h1 className="text-5xl font-black">
-        TV Homburg Dashboard
+      <h1 className="text-3xl font-black sm:text-4xl lg:text-5xl">
+        {title}
       </h1>
 
       <p className="text-slate-500 mt-2">
-        V24 CORE MERGE
+        {subtitle}
       </p>
 
     </header>

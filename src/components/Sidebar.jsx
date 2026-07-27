@@ -7,7 +7,10 @@ import {
   ClipboardList
 } from 'lucide-react'
 
-export default function Sidebar() {
+export default function Sidebar({
+  activePage = 'dashboard',
+  onNavigate
+}) {
 
   return (
     <aside className="bg-slate-950 text-white p-6">
@@ -35,17 +38,20 @@ export default function Sidebar() {
         <NavItem
           icon={<LayoutDashboard size={18} />}
           label="Dashboard"
-          active
+          active={activePage === 'dashboard'}
+          onClick={() => onNavigate?.('dashboard')}
         />
 
         <NavItem
           icon={<Calendar size={18} />}
           label="Kalender"
+          disabled
         />
 
         <NavItem
           icon={<Users size={18} />}
           label="Helfer"
+          disabled
         />
 
         <div className="pt-6 mt-6 border-t border-white/10 text-xs uppercase text-slate-500 font-bold">
@@ -55,16 +61,20 @@ export default function Sidebar() {
         <NavItem
           icon={<Shield size={18} />}
           label="Teams"
+          disabled
         />
 
         <NavItem
           icon={<ClipboardList size={18} />}
-          label="Spiele"
+          label="Spiele verwalten"
+          active={activePage === 'admin-games'}
+          onClick={() => onNavigate?.('admin-games')}
         />
 
         <NavItem
           icon={<Calendar size={18} />}
           label="Kalenderimport"
+          disabled
         />
 
       </nav>
@@ -73,15 +83,27 @@ export default function Sidebar() {
   )
 }
 
-function NavItem({ icon, label, active }) {
+function NavItem({
+  icon,
+  label,
+  active,
+  onClick,
+  disabled = false
+}) {
 
   return (
     <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-current={active ? 'page' : undefined}
       className={
         "w-full h-12 rounded-2xl px-4 flex items-center gap-3 " +
         (active
           ? "bg-emerald-600"
-          : "hover:bg-white/10")
+          : disabled
+            ? "text-slate-600 cursor-not-allowed"
+            : "hover:bg-white/10")
       }
     >
       {icon}

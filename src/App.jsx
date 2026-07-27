@@ -19,10 +19,14 @@ export default function App() {
   } = useDashboardStore()
 
   useEffect(() => {
+    if (activePage !== 'dashboard') {
+      return
+    }
+
     loadData().catch(error => {
       console.error('Dashboard-Daten konnten nicht geladen werden.', error)
     })
-  }, [loadData])
+  }, [activePage, loadData])
 
   const filteredGames = getFilteredGames()
 

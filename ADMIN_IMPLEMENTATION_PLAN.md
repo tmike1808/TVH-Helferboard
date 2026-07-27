@@ -5,6 +5,37 @@ Analysierter Ausgangspunkt: Commit `51bd47d` (`Version 24.0.5`)
 
 Diese Datei dokumentiert ausschließlich den vorhandenen Zustand und den konkreten Plan für das spätere Spiele-CRUD. In dieser Phase wurden keine funktionalen Änderungen am Anwendungscode vorgenommen.
 
+## Status DB-0
+
+**DB-0 ist im aktuellen Arbeitsbaum als versionierte, noch nicht ausgeführte Datenbankgrundlage umgesetzt.**
+
+- `supabase/migrations/20260727000100_initial_schema.sql` definiert die vier vom Code verwendeten Tabellen mit UUID-Schlüsseln, `games.start_time` als `timestamptz`, Fremdschlüsseln, Indizes, Constraints und Löschregeln.
+- `helper_roles.slots` bleibt das verbindliche Mengenfeld, weil ausschließlich dieser Name im Anwendungscode belegt ist.
+- Spiele löschen ihre Helferzuordnungen per Cascade; Teams und Rollen mit abhängigen Daten werden per Restrict geschützt.
+- RLS ist für alle Tabellen aktiviert. Öffentlich erlaubt sind Lesen sowie Insert/Delete für `helper_assignments`.
+- Für `teams`, `games` und `helper_roles` existieren keine anonymen Schreibrechte oder Schreib-Policies.
+- `supabase/seed.sql` enthält anpassbare Beispielteams und die vorgegebenen Rollenfolgen. Alle Slot-Werte sind mangels Vereinsvorgabe ausdrücklich vorläufig.
+- `SUPABASE_SETUP.md` beschreibt die einmalige SQL-Editor-Anwendung, Seed-Ausführung, lokale Vite-Konfiguration und Sicherheitsgrenzen.
+- Es wurde kein SQL lokal oder remote ausgeführt. Die Prüfung war statisch; `psql`, Supabase CLI und Docker waren nicht verfügbar.
+
+Der zentrale Sicherheitskonflikt bleibt bewusst offen: Sprint 1B ist implementiert, die reale Datenbankabnahme steht aus. Ohne Admin-Authentifizierung blockiert die sichere DB-0-RLS-Konfiguration den anonymen Insert in `games`.
+
+## Status Sprint 1B
+
+**Sprint 1B ist im aktuellen Arbeitsbaum implementiert, die reale Datenbankabnahme steht aus.** Schritt 7 des Plans ist für den nachweisbaren Datenbankvertrag abgeschlossen:
+
+- `GameForm` bildet `team_id`, `opponent`, `is_home` und `start_time` als kontrolliertes Create-Formular ab.
+- Die TVH-Mannschaft wird über lesbare Namen aus `teams` ausgewählt; `opponent` bleibt entsprechend dem vorhandenen Schema ein Gegnername.
+- Datum und Uhrzeit werden getrennt erfasst, als lokale Zeit validiert und mit `toISOString()` als eindeutiger Zeitpunkt gespeichert.
+- Leere Pflichtfelder und identische Heim-/Gastmannschaften verhindern den Serviceaufruf und werden sichtbar erläutert.
+- `gameService.createGame()` begrenzt den Payload auf die vier belegten Felder und prüft den Insert-Fehler. Die erzeugte Zeile wird danach über den vorhandenen Lesepfad geladen, sodass der Insert keine zusätzliche Select-Policy voraussetzt.
+- `AdminGamesPage` hält Formular- und Speicherzustand lokal, verhindert synchron doppeltes Absenden und lädt die sortierte Adminliste nach Erfolg erneut.
+- `App` lädt die Dashboard-Daten bei jedem erneuten Öffnen des Dashboards; Adminformularzustand wurde nicht in den globalen Store verschoben.
+- Supabase wird über `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` konfiguriert; `.env.example` enthält nur Platzhalter.
+- Update, Delete, Excel-Import, Authentifizierung, RLS-Änderungen und Routing bleiben außerhalb von Sprint 1B.
+
+Browserseitig wurden die UI- und Fehlerpfade mit kontrollierten lokalen REST-Antworten geprüft. Da keine echten lokalen Supabase-Zugangsdaten vorhanden waren, ist ein erfolgreicher Schreibvorgang gegen das reale Supabase-Projekt nicht nachgewiesen.
+
 ## Status Sprint 1A.1
 
 **Sprint 1A.1 ist im aktuellen Arbeitsbaum umgesetzt.** Der Sprint-1A-Lesepfad wurde ohne fachliche Erweiterung überprüft und bereinigt:

@@ -1,12 +1,12 @@
 # TVH Helfer Dashboard
 
-Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage sind der Commit `51bd47d` (`Version 24.0.5`) sowie alle zu diesem Zeitpunkt vorhandenen Projektdateien. Aussagen zum Datenbankschema sind auf die im Code sichtbaren Zugriffe begrenzt, da das Repository weder SQL-Migrationen noch ein Schema oder Seed-Daten enthält.
+Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage sind der Commit `5624894` (`V24.0.5.1 Sprint 1A`), der Arbeitsstand von Sprint 1B und die in DB-0 erstellte, noch nicht remote ausgeführte Supabase-Grundlage.
 
 ## 1. Projektziel
 
 Das Projekt soll ein öffentliches Helferboard für den TV Homburg Handball bereitstellen. Helfer sollen sich ohne Benutzerkonto für Aufgaben bei Spielen eintragen und wieder austragen können. Ein Adminbereich soll Spiele verwalten und später Importe ermöglichen. Hauptziel ist eine stabile, öffentlich nutzbare MVP-Version.
 
-Der derzeitige Code bildet dieses Ziel teilweise ab: Das Helfer-Dashboard ist implementiert, benötigt aber eine gültige Supabase-Konfiguration und passende Datenbankregeln. Der Adminbereich ist über die Sidebar erreichbar und bietet eine rein lesende Spieleübersicht; Anlegen, Bearbeiten und Löschen sind noch nicht implementiert.
+Der derzeitige Code bildet dieses Ziel teilweise ab: Das Helfer-Dashboard ist implementiert, benötigt aber eine gültige lokale Supabase-Konfiguration und passende Datenbankregeln. Der Adminbereich ist über die Sidebar erreichbar, zeigt Spiele an und besitzt seit Sprint 1B einen Ablauf zum Anlegen. Bearbeiten und Löschen sind noch nicht implementiert.
 
 ## 2. Technischer Ist-Zustand
 
@@ -50,15 +50,28 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 
 ```text
 .
+├── .env.example
+├── .gitignore
+├── ADMIN_IMPLEMENTATION_PLAN.md
 ├── CHANGELOG.md
+├── PROJECT.md
 ├── README.md
 ├── README_INSTALLATION.md
+├── SUPABASE_SETUP.md
 ├── docs/
 │   └── INSTALLATION.md
 ├── index.html
 ├── package.json
 ├── package-lock.json
 ├── postcss.config.js
+├── reports/
+│   ├── V24.0.5.1-Sprint-1A.1.md
+│   ├── V24.0.5.1-Sprint-1B.md
+│   └── DB-0-Supabase-Grundlage.md
+├── supabase/
+│   ├── migrations/
+│   │   └── 20260727000100_initial_schema.sql
+│   └── seed.sql
 ├── tailwind.config.js
 ├── vite.config.js
 └── src/
@@ -87,7 +100,7 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
         └── globals.css
 ```
 
-Besonderheit des Ist-Zustands: Es gibt keine `.gitignore`, und `node_modules/` ist mit 7.757 Dateien in Git versioniert.
+`node_modules/`, `dist/`, lokale `.env`-Varianten und Editor-Dateien werden über `.gitignore` ausgeschlossen. `.env.example` ist ausdrücklich von der allgemeinen `.env.*`-Regel ausgenommen und enthält ausschließlich Platzhalter.
 
 ### Zustandsverwaltung
 
@@ -98,7 +111,7 @@ Besonderheit des Ist-Zustands: Es gibt keine `.gitignore`, und `node_modules/` i
 - Aktionen: `loadData`, `reloadAssignments`, `setSelectedTeam`, `setSelectedCategory`
 - Selektorlogik: `getFilteredGames`
 
-Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält Spiele, Ladezustand und Fehler lokal in `AdminGamesPage` und lädt ausschließlich über `gameService`.
+Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält Spiele, Teams, Lade-, Formular-, Speicher- und Meldungszustände lokal in `AdminGamesPage` und lädt beziehungsweise schreibt ausschließlich über `gameService`.
 
 `loadData` liest alle vier Tabellen direkt über den Supabase-Client und speichert die Ergebnisse im Store. Die Abfragen laufen nacheinander. Ladezustände und sichtbare Fehlerzustände werden nicht verwaltet. Erfolgreiche `data: null`-Antworten werden auf leere Arrays normalisiert. Bei Supabase-Fehlern bleiben die zuletzt gültigen Store-Daten erhalten und technische Details werden protokolliert; eine sichtbare Dashboard-Fehlermeldung gibt es weiterhin nicht. Unerwartete Promise-Fehler aus `loadData()` werden in `App` abgefangen.
 
@@ -106,14 +119,11 @@ Die Spielfilterung ordnet Spiele über `games.team_id = teams.id` einem Team zu.
 
 ### Supabase-Anbindung
 
-`src/lib/supabase.js` erzeugt einen Client mit `createClient`. URL und Anon-Key sind dort fest eingetragene Platzhalter:
+`src/lib/supabase.js` erzeugt einen Client mit `createClient` und liest die lokale Konfiguration ausschließlich aus den Vite-Umgebungsvariablen `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY`. `.env.example` dokumentiert beide Namen mit Platzhalterwerten. Lokale Werte gehören in die ignorierte `.env.local`. Fehlen Werte, wird eine verständliche Konsolenwarnung ausgegeben und ein nicht produktiver Fallback verwendet, damit die Oberfläche ihren behandelten Ladefehler anzeigen kann.
 
-- `https://YOUR_PROJECT.supabase.co`
-- `YOUR_ANON_KEY`
+Damit ist das Repository ohne lokale Konfiguration nicht gegen ein echtes Supabase-Projekt lauffähig. Seit DB-0 existieren eine versionierte initiale Migration, reproduzierbare Seed-Daten und dokumentierte Row-Level-Security-Policies. Sie wurden in dieser Aufgabe ausschließlich statisch geprüft und noch auf keine lokale oder entfernte Datenbank angewendet.
 
-Damit ist das Repository ohne manuelle Konfiguration nicht gegen ein echtes Supabase-Projekt lauffähig. Umgebungsvariablen werden derzeit nicht verwendet. Es existieren keine `.env`-Dateien, keine Migrationen, keine Schema-Dateien, keine Seed-Daten und keine dokumentierten Row-Level-Security-Policies.
-
-Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Spiele existieren zusätzlich Services. Authentifizierung oder Autorisierung ist im Frontend nicht implementiert. Ob anonyme Lese-, Einfüge-, Änderungs- oder Löschzugriffe serverseitig erlaubt und sicher eingeschränkt sind, lässt sich aus diesem Repository nicht feststellen.
+Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Spiele existieren zusätzlich Services. Authentifizierung oder Autorisierung ist im Frontend nicht implementiert. Die DB-0-Migration erlaubt öffentliches Lesen sowie Insert und Delete für `helper_assignments`, aber keine anonymen Admin-Schreibzugriffe auf `teams`, `games` oder `helper_roles`. Deshalb ist Sprint 1B implementiert, die reale Datenbankabnahme steht jedoch aus und `gameService.createGame()` wird an der sicheren RLS-Grundlage ohne spätere Admin-Authentifizierung erwartungsgemäß scheitern.
 
 ### Services
 
@@ -126,23 +136,24 @@ Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Sp
 `src/services/gameService.js`:
 
 - `getGames()`: lädt die im Dashboard nachweislich verwendeten Spielfelder sowie `id`, `name` und `category` der Teams, ordnet Teams über `team_id` zu und sortiert Spiele aufsteigend nach `start_time`.
-- `createGame(g)`: legt ein Spiel mit dem übergebenen Objekt an.
+- `getTeams()`: lädt `id`, `name` und `category` der verfügbaren Mannschaften und sortiert sie für das Formular nach Namen.
+- `createGame(g)`: begrenzt den Schreib-Payload auf `team_id`, `start_time`, `opponent` und `is_home`, legt genau diesen Datensatz an und wirft einen Supabase-Fehler an die Seite weiter. Der anschließend sichtbare Datensatz wird über `getGames()` neu gelesen.
 - `updateGame(id, g)`: aktualisiert ein Spiel anhand von `id`.
 - `deleteGame(id)`: löscht ein Spiel anhand von `id`.
 
-`getGames()` wird von `AdminGamesPage` verwendet und wirft Supabase-Fehler an die Seite weiter. Die drei Schreibfunktionen sind weiterhin nicht eingebunden. Für den Lesezugriff gilt `start_time` als kanonisches Feld, weil dieses Feld bereits von `MatchCard` verwendet wird; `date` war außerhalb der früheren Service-Sortierung nicht belegt.
+`getGames()`, `getTeams()` und `createGame()` werden von `AdminGamesPage` verwendet und werfen Supabase-Fehler an die Seite weiter. `updateGame()` und `deleteGame()` bleiben ungenutzt. Für Lese- und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 
 ### Seiten und Komponenten
 
-- `App`: Anwendungsshell, initialer Dashboard-Datenlader und interne Umschaltung zwischen Dashboard und Admin-Spieleübersicht.
+- `App`: Anwendungsshell, interne Umschaltung zwischen Dashboard und Admin-Spieleübersicht sowie erneutes Laden der Dashboard-Daten bei jedem Öffnen des Dashboards.
 - `Sidebar`: Navigation zwischen Dashboard und „Spiele verwalten“ mit sichtbarem Aktivzustand; noch nicht implementierte Ziele sind deaktiviert.
 - `Topbar`: konfigurierbare Überschrift und Untertitel mit den bisherigen Dashboard-Texten als Standard.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und Mannschaften für die aktuelle Filterung.
 - `FilterBar`: Team- und Kategoriefilter.
 - `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige sowie Ein- und Austragen von Helfern.
-- `AdminGamesPage`: erreichbare, rein lesende Seite mit lokalem Lade-, Fehler-, Leer- und Datenzustand.
+- `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-, Leer-, Formular-, Speicher- und Meldungszustand; orchestriert Lesen und Anlegen über `gameService`.
 - `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum, Uhrzeit, Heimteam, Gastteam und Kategorie.
-- `GameForm`: Platzhalter, der nur „GameForm“ ausgibt.
+- `GameForm`: kontrolliertes, beschriftetes Create-Formular mit Datum, Uhrzeit, Heim-/Auswärtswahl, TVH-Team-Auswahl, Gegnername, Validierung, Ladezustand und Abbrechen.
 - `DeleteGameDialog`: leerer Platzhalter, der `null` zurückgibt.
 
 ### Aktuell implementierte Funktionen
@@ -162,74 +173,85 @@ Der Dashboard-Store greift direkt auf Supabase zu. Für Helferzuordnungen und Sp
 - Reload-freier Wechsel zwischen Dashboard und Admin-Spieleübersicht.
 - Rein lesendes Laden der Spiele und zugehörigen Teamdaten über `gameService`.
 - Nach `start_time` sortierte, deutsch formatierte Spieleübersicht mit Lade-, Fehler- und Leerzustand.
-- Vorbereitete, aber nicht verwendete Servicefunktionen für Create, Update und Delete.
+- Öffnen und Abbrechen eines zurückgesetzten Create-Formulars.
+- Laden der TVH-Mannschaften aus `teams` und Anzeige lesbarer Namen im Auswahlfeld.
+- Validierung von Datum, Uhrzeit, TVH-Mannschaft, Gegner und unterschiedlichen Heim-/Gastmannschaften.
+- Erzeugen eines eindeutigen ISO-Zeitwerts aus lokal erfasstem Datum und lokaler Uhrzeit.
+- Anlegen über `gameService.createGame()` mit sichtbarem Lade-, Erfolgs- und Fehlerzustand sowie synchronem Doppelklickschutz.
+- Neuladen und sortierte Darstellung der Adminliste nach erfolgreichem Anlegen.
+- Erneutes Laden aller Dashboard-Daten beim nächsten Öffnen des Dashboards.
 
-Diese Funktionen sind im Code vorhanden. Ihre tatsächliche End-to-End-Funktion ist mit den eingecheckten Supabase-Platzhaltern nicht nachweisbar.
+Diese Funktionen sind im Code vorhanden. Sprint 1B ist implementiert, die reale Datenbankabnahme steht aus. Die DB-0-Migration wurde nicht remote ausgeführt; insbesondere sind RLS-Verhalten und der erfolgreiche Admin-Schreibvorgang gegen ein echtes Projekt nicht end-to-end nachgewiesen.
 
 ### Platzhalter, unvollständige Funktionen und bekannte Abweichungen
 
-- Der Supabase-Endpunkt und Anon-Key sind Platzhalter.
-- Der Adminbereich ist nur lesend; Create, Update und Delete fehlen.
-- `GameForm` und `DeleteGameDialog` sind weiterhin Platzhalter.
+- Ohne lokale Umgebungsvariablen ist keine echte Supabase-Verbindung vorhanden.
+- Die sichere DB-0-RLS-Grundlage blockiert anonyme Inserts in `games`; der Sprint-1B-Create-Pfad benötigt vor der realen Abnahme eine Admin-Authentifizierung und darauf begrenzte Policies.
+- Der Adminbereich kann lesen und anlegen; Update und Delete fehlen.
+- `DeleteGameDialog` ist weiterhin ein Platzhalter.
 - Kalender, Helferansicht, Teams und Kalenderimport sind deaktiviert und haben keine Funktion.
 - Es gibt keine URL-basierte Navigation; die aktuelle Seite wird nur im lokalen Zustand von `App` gehalten.
-- Spiele-CRUD besitzt nur nicht eingebundene Schreibfunktionen; Formulare, Validierung und Löschbestätigung fehlen.
+- Spiele-CRUD besitzt einen eingebundenen Create-Pfad; Bearbeitungsformular und Löschbestätigung fehlen.
 - Es gibt keinen Excel-Import und keinen handball.net-Import.
 - Die KPI „Offene Dienste“ rechnet pauschal mit zehn Plätzen pro Spiel, nicht mit den dynamischen Rollen und deren `slots`.
 - Die MatchCard ermittelt „vollständig besetzt“ anhand der Gesamtzahl aller Spielzuordnungen. Zuordnungen zu nicht passenden Rollen können den Status verfälschen.
 - Fehler aus `helperService` werden in `MatchCard` nicht anhand des Rückgabewerts ausgewertet. Ein fehlgeschlagenes Einfügen kann daher trotzdem das Eingabefeld leeren; ein verständlicher Fehler wird nicht zuverlässig angezeigt.
-- Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die Sicherheit hängt vollständig von nicht dokumentierten Supabase-Regeln ab.
-- Clientseitige Prüfungen verhindern keine konkurrierenden Überbuchungen oder Doppeleinträge. Datenbank-Constraints sind nicht dokumentiert.
+- Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die DB-0-Policy muss deshalb für die öffentliche Austragefunktion derzeit das Löschen jeder sichtbaren Zuordnung anhand ihrer ID erlauben.
+- Die DB-0-Migration verhindert namensgleiche Doppeleinträge je Spiel und Rolle ohne Beachtung der Groß-/Kleinschreibung. Eine konkurrierende Überbuchung über `helper_roles.slots` wird weiterhin nicht serverseitig verhindert.
 - Das Dashboard besitzt weiterhin keine eigene Lade-, Leer-, Netzwerkfehler- oder Wiederholungsansicht; die Admin-Spieleübersicht behandelt Laden, Fehler und leere Daten.
 - Es gibt keine automatisierten Tests und kein Testskript.
 - Es gibt keine Deployment-Konfiguration im Repository.
 
-Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von Namen, Verhindern doppelter Einträge und Fehlerbehandlung, für `V24.0.5` die vorbereitete Admin-Grundstruktur und für `V24.0.5.1 – Sprint 1A` die interne Navigation sowie die lesende Admin-Spieleübersicht. Der Admin-Lesepfad ist implementiert; der Spiele-CRUD bleibt offen.
+Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von Namen, Verhindern doppelter Einträge und Fehlerbehandlung, für `V24.0.5` die vorbereitete Admin-Grundstruktur, für Sprint 1A die interne Navigation und Leseansicht sowie für Sprint 1B den Create-Ablauf. Read und Create sind implementiert; Update und Delete bleiben offen.
 
 ## 3. Datenmodell
 
-Die folgenden Angaben beschreiben ausschließlich im Code gelesene oder geschriebene Felder. Datentypen, Nullbarkeit, Defaultwerte, Primär- und Fremdschlüssel, Unique- und Check-Constraints, Indizes, Löschregeln, Trigger sowie RLS-Policies sind im Repository nicht definiert und daher nicht eindeutig ermittelbar.
+Die folgenden Angaben beschreiben die mit dem Code kompatible DB-0-Migration. Diese Definitionen sind versioniert, wurden aber noch nicht gegen eine echte Supabase-Instanz ausgeführt.
 
 ### `teams`
 
-| Feld | Verwendung im Code | Nicht eindeutig ermittelbar |
+| Feld | Verwendung im Code | Definition in DB-0 |
 | --- | --- | --- |
-| `id` | Identifikation, Zuordnung über `games.team_id`, Wert des Teamfilters | Typ, Primärschlüsseldefinition |
-| `name` | Anzeigename in Filter und MatchCard | Typ, Pflichtfeld, Eindeutigkeit |
-| `category` | Filterung und Auswahl der Rollen; erwartet werden `Aktive` oder `Jugend` | Typ, erlaubte Werte, Pflichtfeld |
+| `id` | Identifikation, Zuordnung über `games.team_id`, Wert des Teamfilters | `uuid`, Primärschlüssel, Default `gen_random_uuid()` |
+| `name` | Anzeigename in Filter und MatchCard | `text not null`, getrimmt, Länge 1–120 |
+| `category` | Filterung und Auswahl der Rollen; erwartet werden `Aktive` oder `Jugend` | `text not null`, Check auf `Aktive`/`Jugend` |
+| `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
 
 ### `games`
 
-| Feld | Verwendung im Code | Nicht eindeutig ermittelbar |
+| Feld | Verwendung im Code | Definition in DB-0 |
 | --- | --- | --- |
-| `id` | React-Key, Zuordnung von Helfern, Ziel für Update und Delete | Typ, Primärschlüsseldefinition |
-| `team_id` | Zuordnung zu `teams.id` | Typ, Fremdschlüssel und Löschregel |
-| `start_time` | Datumsausgabe in der MatchCard | Typ, Zeitzone, Pflichtfeld |
-| `opponent` | Gegnername in der MatchCard | Typ, Pflichtfeld |
-| `is_home` | Zählung der Heimspiele in den KPIs | Typ, Defaultwert, Pflichtfeld |
+| `id` | React-Key, Zuordnung von Helfern, Ziel für Update und Delete | `uuid`, Primärschlüssel, Default `gen_random_uuid()` |
+| `team_id` | Zuordnung zu `teams.id` | `uuid not null`, Fremdschlüssel, `ON DELETE RESTRICT` |
+| `start_time` | Datumsausgabe und Sortierung | `timestamptz not null`, indexiert |
+| `opponent` | Gegnername in der MatchCard | `text not null`, getrimmt, Länge 1–120 |
+| `is_home` | Zählung der Heimspiele in den KPIs | `boolean not null` |
+| `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
 
-`createGame` und `updateGame` übernehmen beliebige Objektfelder. Daraus lassen sich keine weiteren verlässlichen Spalten ableiten.
+`createGame` schreibt ausschließlich die vier belegten Felder. `updateGame` übernimmt weiterhin beliebige Objektfelder, ist aber nicht in die Oberfläche eingebunden. Daraus lassen sich keine weiteren verlässlichen Spalten ableiten.
 
 ### `helper_roles`
 
-| Feld | Verwendung im Code | Nicht eindeutig ermittelbar |
+| Feld | Verwendung im Code | Definition in DB-0 |
 | --- | --- | --- |
-| `id` | React-Key und Zuordnung über `helper_assignments.role_id` | Typ, Primärschlüsseldefinition |
-| `name` | Rollenbezeichnung | Typ, Pflichtfeld, Eindeutigkeit |
-| `category` | Zuordnung zu einer Teamkategorie | Typ, erlaubte Werte, Pflichtfeld |
-| `order_index` | aufsteigende Sortierung der Rollen | Typ, Defaultwert, Eindeutigkeit innerhalb einer Kategorie |
-| `slots` | benötigte Anzahl und Offen-/Voll-Berechnung | Typ, Mindestwert, Pflichtfeld |
+| `id` | React-Key und Zuordnung über `helper_assignments.role_id` | `uuid`, Primärschlüssel, Default `gen_random_uuid()` |
+| `name` | Rollenbezeichnung | `text not null`, getrimmt, Länge 1–80 |
+| `category` | Zuordnung zu einer Teamkategorie | `text not null`, Check auf `Aktive`/`Jugend` |
+| `order_index` | aufsteigende Sortierung der Rollen | `integer not null`, positiv, je Kategorie eindeutig |
+| `slots` | benötigte Anzahl und Offen-/Voll-Berechnung | `integer not null`, größer als 0 |
+| `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
 
 ### `helper_assignments`
 
-| Feld | Verwendung im Code | Nicht eindeutig ermittelbar |
+| Feld | Verwendung im Code | Definition in DB-0 |
 | --- | --- | --- |
-| `id` | React-Key und Ziel des Löschvorgangs | Typ, Primärschlüsseldefinition |
-| `game_id` | Zuordnung zu einem Spiel | Typ, Fremdschlüssel und Löschregel |
-| `role_id` | Zuordnung zu einer Helferrolle | Typ, Fremdschlüssel und Löschregel |
-| `helper_name` | Anzeigename, Trimmen und Prüfung auf namensgleiche Doppeleinträge | Typ, Längenlimit, Pflichtfeld, serverseitige Normalisierung |
+| `id` | React-Key und Ziel des Löschvorgangs | `uuid`, Primärschlüssel, Default `gen_random_uuid()` |
+| `game_id` | Zuordnung zu einem Spiel | `uuid not null`, Fremdschlüssel, `ON DELETE CASCADE` |
+| `role_id` | Zuordnung zu einer Helferrolle | `uuid not null`, Fremdschlüssel, `ON DELETE RESTRICT` |
+| `helper_name` | Anzeigename, Trimmen und Prüfung auf namensgleiche Doppeleinträge | `text not null`, getrimmt, Länge 1–100 |
+| `created_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()` |
 
-Nicht aus dem Repository belegbar sind insbesondere ein serverseitiger Schutz vor Überbuchung, ein Unique-Constraint gegen Doppeleinträge und eine Regel, die nur zum Spiel beziehungsweise zur Teamkategorie passende Rollen zulässt.
+DB-0 ergänzt einen eindeutigen Index auf `game_id`, `role_id` und `lower(helper_name)` sowie einen Trigger, der nur Rollen aus der Kategorie des Spielteams zulässt. Ein serverseitiger Schutz vor Überbuchung anhand von `slots` ist noch nicht enthalten.
 
 ## 4. Fachliche Regeln
 
@@ -252,7 +274,7 @@ Nicht aus dem Repository belegbar sind insbesondere ein serverseitiger Schutz vo
 - Orange bedeutet: Es sind noch Helferplätze offen.
 - Grün bedeutet: Alle benötigten Helferplätze sind besetzt.
 
-Die Farblogik und Sortierung sind im Code umgesetzt. Die konkreten Rollennamen, Kategorien, `order_index`-Werte und Platzanzahlen liegen ausschließlich in der nicht mitgelieferten Datenbank. Die beiden Rollenlisten können deshalb im Repository nicht gegen Seed-Daten verifiziert werden und sind als verbindliche fachliche Soll-Konfiguration zu behandeln.
+Die Farblogik und Sortierung sind im Code umgesetzt. DB-0 enthält beide Rollenlisten mit den verbindlichen `order_index`-Werten. Weil konkrete Vereinsbedarfe weiterhin nicht belegt sind, setzt der Seed alle `slots` deutlich als vorläufig markiert auf den technischen Mindestwert `1`.
 
 ## 5. Eingefrorener MVP-Umfang
 
@@ -271,7 +293,7 @@ Die Farblogik und Sortierung sind im Code umgesetzt. Die konkreten Rollennamen, 
 - Excel-Import nach Fertigstellung des Spiele-CRUD.
 - Öffentliches Deployment.
 
-Die Liste beschreibt den eingefrorenen Zielumfang. Im Ist-Zustand sind Dashboard, KPIs, Filter, MatchCards, dynamische Rollen, Helferaktionen und die lesende Admin-Spieleübersicht implementiert. Admin-Schreibfunktionen, Excel-Import und öffentliches Deployment sind noch nicht fertiggestellt.
+Die Liste beschreibt den eingefrorenen Zielumfang. Im Ist-Zustand sind Dashboard, KPIs, Filter, MatchCards, dynamische Rollen, Helferaktionen sowie Lesen und Anlegen in der Admin-Spieleübersicht implementiert. Bearbeiten, Löschen, Excel-Import und öffentliches Deployment sind noch nicht fertiggestellt.
 
 ## 6. Nicht Teil des aktuellen MVP
 
@@ -314,6 +336,6 @@ Im aktuellen Repository existieren keine automatisierten Tests und kein Testskri
 ## 9. Versionsplan
 
 - **V24.0.5:** vorhandene Ausgangsversion. Admin-Grundstruktur und Spiele-Service sind vorbereitet; ein funktionaler Adminbereich fehlt.
-- **V24.0.5.1:** Adminbereich für Spiele; Sprint 1A mit Navigation und Leseansicht ist umgesetzt, Create, Update und Delete stehen noch aus.
+- **V24.0.5.1:** Adminbereich für Spiele; Sprint 1A mit Navigation und Leseansicht sowie Sprint 1B mit Create sind umgesetzt. DB-0 liefert die versionierte, noch nicht angewendete Datenbankgrundlage. Die reale Datenbankabnahme sowie Update und Delete stehen noch aus.
 - **V24.0.6:** Excel-Import nach Fertigstellung des Spiele-CRUD.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

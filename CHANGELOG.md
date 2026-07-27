@@ -1,5 +1,26 @@
 # Changelog
 
+## DB-0 – Reproduzierbare Supabase-Datenbankgrundlage
+- Initiale Migration für `teams`, `games`, `helper_roles` und `helper_assignments`
+- UUID-Schlüssel, Fremdschlüssel, Constraints, Zeitstempel und Indizes festgelegt
+- `games.start_time` als `timestamptz` und `helper_roles.slots` als Mengenfeld bestätigt
+- Nach Spiel-Löschung werden Helferzuordnungen kaskadiert entfernt; Team- und Rollenlöschungen mit Abhängigkeiten werden blockiert
+- RLS für alle Tabellen mit öffentlichen Leserechten und öffentlichen Helferaktionen vorbereitet
+- Keine anonymen Schreibrechte oder Policies für Spiele und andere Admin-Daten
+- Anpassbare Beispielteams und vorläufige Rollen-Slot-Werte in `supabase/seed.sql`
+- Einrichtungs- und Sicherheitsanleitung in `SUPABASE_SETUP.md`
+
+## V24.0.5.1 – Sprint 1B
+- Funktionales Formular zum Anlegen von Spielen im Adminbereich
+- Mannschaftsauswahl aus der vorhandenen `teams`-Tabelle
+- Validierung von Datum, Uhrzeit, Mannschaften und Heim-/Auswärtszuordnung
+- Lokalzeitbewusste Umwandlung von Datum und Uhrzeit nach `start_time`
+- Speichern ausschließlich über `gameService.createGame()`
+- Sichtbare Lade-, Erfolgs- und Fehlerzustände mit Doppelklickschutz
+- Automatischer Refresh der Adminliste nach erfolgreichem Anlegen
+- Aktualisierung der Dashboard-Daten beim nächsten Öffnen
+- Supabase-Konfiguration über Vite-Umgebungsvariablen und `.env.example`
+
 ## V24.0.5.1 – Sprint 1A.1
 - Sprint-1A-Codepfad auf ungenutzte und unnötige Logik geprüft
 - Doppelte Datenaufbereitung in GameTable zusammengeführt

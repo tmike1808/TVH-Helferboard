@@ -47,10 +47,19 @@ export default function Sidebar({
           <Menu size={24} aria-hidden="true" />
         </button>
 
-        <div className="min-w-0 text-right">
-          <div className="truncate text-lg font-black">TV Homburg</div>
-          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">
-            Helferboard
+        <div className="flex min-w-0 items-center gap-2 text-right">
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-[#8B1E2D]">
+            <img
+              src="/tvh-logo.png"
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-lg font-black">TVH</div>
+            <div className="text-xs font-bold tracking-wide text-[#A1A1AA]">
+              Dashboard
+            </div>
           </div>
         </div>
       </header>
@@ -77,17 +86,21 @@ export default function Sidebar({
 
       <div className="mb-8 flex min-w-0 items-center gap-3 lg:mb-10 lg:gap-4">
 
-        <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center font-black">
-          TVH
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[#8B1E2D]">
+          <img
+            src="/tvh-logo.png"
+            alt="TVH Logo"
+            className="h-full w-full object-cover"
+          />
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="break-words text-xl font-black lg:text-2xl">
-            TV Homburg
+            TVH
           </div>
 
-          <div className="text-slate-400">
-            CORE MERGE
+          <div className="text-[#A1A1AA]">
+            Dashboard
           </div>
         </div>
 
@@ -182,7 +195,7 @@ function NavItem({
       className={
         "flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left " +
         (active
-          ? "bg-emerald-600"
+          ? "bg-[#8B1E2D]"
           : disabled
             ? "text-slate-600 cursor-not-allowed"
             : "hover:bg-white/10")

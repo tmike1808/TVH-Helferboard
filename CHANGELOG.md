@@ -1,5 +1,11 @@
 # Changelog
 
+## Unveröffentlicht – Header- und App-Branding
+- Dashboard-Titel und motivierenden Vereinsuntertitel gemäß Branding-Vorgabe aktualisiert
+- Bereitgestelltes TVH-Logo in Desktop-Sidebar und mobiler Kopfzeile eingebunden
+- Sidebar-Branding auf „TVH“ und „Dashboard“ sowie den Primärton Dunkelrot umgestellt
+- Keine Funktions-, Logik-, Datenbank-, RLS-, Policy- oder Rechteänderungen vorgenommen
+
 ## V24.0.6.2 – Sprint 5 Hierarchische Dashboard-Filter
 - Kategorie als stärksten Einfachfilter mit den Zuständen Alle, Aktive und Jugend beibehalten
 - Mannschafts- und Helferrollenfilter als zugängliche Mehrfachauswahl ohne neue UI-Abhängigkeit umgesetzt

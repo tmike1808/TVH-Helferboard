@@ -71,8 +71,8 @@ export default function GameTable({
   })
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="hidden overflow-x-auto md:block">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="hidden max-w-full overflow-x-auto md:block">
         <table className="w-full border-collapse text-left">
           <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500">
             <tr>
@@ -94,10 +94,10 @@ export default function GameTable({
                 <td className="whitespace-nowrap px-5 py-4">
                   {row.time}
                 </td>
-                <td className="px-5 py-4">
+                <td className="max-w-xs break-words px-5 py-4">
                   {row.homeTeam}
                 </td>
-                <td className="px-5 py-4">
+                <td className="max-w-xs break-words px-5 py-4">
                   {row.awayTeam}
                 </td>
                 <td className="px-5 py-4">
@@ -119,7 +119,7 @@ export default function GameTable({
 
       <div className="divide-y divide-slate-200 md:hidden">
         {rows.map(row => (
-          <article key={row.game.id} className="space-y-4 p-5">
+          <article key={row.game.id} className="min-w-0 space-y-4 p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="font-black">
                 {row.date}, {row.time} Uhr
@@ -134,7 +134,7 @@ export default function GameTable({
                 <dt className="text-xs font-bold uppercase text-slate-500">
                   Heimmannschaft
                 </dt>
-                <dd className="mt-1 font-bold">
+                <dd className="mt-1 break-words font-bold">
                   {row.homeTeam}
                 </dd>
               </div>
@@ -143,7 +143,7 @@ export default function GameTable({
                 <dt className="text-xs font-bold uppercase text-slate-500">
                   Gastmannschaft
                 </dt>
-                <dd className="mt-1 font-bold">
+                <dd className="mt-1 break-words font-bold">
                   {row.awayTeam}
                 </dd>
               </div>
@@ -172,13 +172,13 @@ function GameActions({
     `${row.homeTeam} gegen ${row.awayTeam} am ${row.date}`
 
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
       <button
         type="button"
         onClick={() => onEdit?.(row.game)}
         disabled={disabled}
         aria-label={`${gameLabel} bearbeiten`}
-        className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+        className="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60 sm:h-10 sm:w-auto"
       >
         Bearbeiten
       </button>
@@ -187,7 +187,7 @@ function GameActions({
         onClick={() => onDelete?.(row.game)}
         disabled={disabled}
         aria-label={`${gameLabel} löschen`}
-        className="h-10 rounded-xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:bg-red-300"
+        className="h-12 w-full rounded-xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:bg-red-300 sm:h-10 sm:w-auto"
       >
         Löschen
       </button>

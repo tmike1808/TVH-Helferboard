@@ -224,7 +224,7 @@ export default function GameForm({
   const isEditMode = mode === 'edit'
 
   return (
-    <div className="mb-6 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm sm:p-7">
+    <div className="mb-6 min-w-0 rounded-3xl border border-emerald-200 bg-white p-4 shadow-sm sm:p-7">
       <div className="mb-6">
         <h2 className="text-2xl font-black">
           {isEditMode ? 'Spiel bearbeiten' : 'Neues Spiel'}
@@ -303,7 +303,7 @@ export default function GameForm({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="h-12 rounded-2xl border border-slate-300 px-5 font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+            className="h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
           >
             Abbrechen
           </button>
@@ -311,7 +311,7 @@ export default function GameForm({
           <button
             type="submit"
             disabled={saving}
-            className="h-12 rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:bg-emerald-400"
+            className="h-12 w-full rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:bg-emerald-400 sm:w-auto"
           >
             {saving
               ? 'Spiel wird gespeichert …'
@@ -327,7 +327,7 @@ export default function GameForm({
 
 function Field({ label, error, errorId, children }) {
   return (
-    <div>
+    <div className="min-w-0">
       <label
         className="mb-2 block text-sm font-bold text-slate-700"
         htmlFor={children.props.id}

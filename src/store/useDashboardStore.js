@@ -95,6 +95,14 @@ export const useDashboardStore = create((set, get) => ({
         || team?.category === selectedCategory
 
       return teamMatch && categoryMatch
+    }).sort((firstGame, secondGame) => {
+      const firstStart = new Date(firstGame.start_time).getTime()
+      const secondStart = new Date(secondGame.start_time).getTime()
+
+      if (Number.isNaN(firstStart) && Number.isNaN(secondStart)) return 0
+      if (Number.isNaN(firstStart)) return 1
+      if (Number.isNaN(secondStart)) return -1
+      return firstStart - secondStart
     })
   }
 

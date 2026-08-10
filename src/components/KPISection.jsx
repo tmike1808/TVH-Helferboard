@@ -70,19 +70,19 @@ export default function KPISection() {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-5 mb-6">
+    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
 
       {cards.map(([title, value]) => (
         <div
           key={title}
-          className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm"
+          className="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6"
         >
 
-          <div className="text-sm uppercase font-bold text-slate-500">
+          <div className="break-words text-xs font-bold uppercase leading-5 text-slate-500 sm:text-sm">
             {title}
           </div>
 
-          <div className="text-5xl font-black mt-3">
+          <div className="mt-2 break-words text-3xl font-black sm:text-4xl lg:mt-3 lg:text-5xl">
             {value}
           </div>
 

@@ -84,7 +84,7 @@ export default function App() {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
 
       <Sidebar
         activePage={activePage}
@@ -94,7 +94,7 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      <main className="min-w-0 p-4 sm:p-6 lg:p-7">
+      <main className="w-full min-w-0 max-w-full p-3 sm:p-6 lg:p-7">
 
         {['admin-games', 'admin-game-import'].includes(activePage) ? (
           renderAdminPage()

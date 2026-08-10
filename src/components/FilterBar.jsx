@@ -12,12 +12,13 @@ export default function FilterBar() {
   } = useDashboardStore()
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm flex gap-4 mb-6">
+    <div className="mb-6 flex min-w-0 flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:gap-4 sm:p-5">
 
       <select
         value={selectedTeam}
         onChange={(e) => setSelectedTeam(e.target.value)}
-        className="h-12 px-4 rounded-2xl border border-slate-200 bg-slate-50"
+        aria-label="Mannschaft filtern"
+        className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 sm:flex-1"
       >
 
         <option value="all">
@@ -38,7 +39,8 @@ export default function FilterBar() {
       <select
         value={selectedCategory}
         onChange={(e) => setSelectedCategory(e.target.value)}
-        className="h-12 px-4 rounded-2xl border border-slate-200 bg-slate-50"
+        aria-label="Kategorie filtern"
+        className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 sm:flex-1"
       >
 
         <option value="all">

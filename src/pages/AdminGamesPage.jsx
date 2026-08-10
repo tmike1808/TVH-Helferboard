@@ -273,7 +273,7 @@ export default function AdminGamesPage() {
   const actionsDisabled = saving || deleting
 
   return (
-    <section>
+    <section className="min-w-0">
       <Topbar
         title="Spiele verwalten"
         subtitle="Übersicht aller vorhandenen Spiele"
@@ -285,7 +285,7 @@ export default function AdminGamesPage() {
             type="button"
             onClick={openCreateForm}
             disabled={isFormOpen || actionsDisabled}
-            className="h-12 rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
+            className="h-12 w-full rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400 sm:w-auto"
           >
             Neues Spiel
           </button>

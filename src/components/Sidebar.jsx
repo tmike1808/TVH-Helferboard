@@ -1,11 +1,14 @@
 
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   Calendar,
   Users,
   Shield,
   ClipboardList,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react'
 
 export default function Sidebar({
@@ -15,18 +18,71 @@ export default function Sidebar({
   onNavigate,
   onLogout
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [activePage])
+
+  function navigate(page) {
+    setMenuOpen(false)
+    onNavigate?.(page)
+  }
+
+  async function logout() {
+    setMenuOpen(false)
+    await onLogout?.()
+  }
 
   return (
-    <aside className="bg-slate-950 text-white p-6">
+    <>
+      <header className="sticky top-0 z-30 flex min-w-0 items-center justify-between gap-3 bg-slate-950 px-4 py-3 text-white shadow-lg lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Navigation öffnen"
+          aria-expanded={menuOpen}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15"
+        >
+          <Menu size={24} aria-hidden="true" />
+        </button>
 
-      <div className="flex items-center gap-4 mb-10">
+        <div className="min-w-0 text-right">
+          <div className="truncate text-lg font-black">TV Homburg</div>
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            Helferboard
+          </div>
+        </div>
+      </header>
+
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Navigation schließen"
+          onClick={() => setMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden"
+        />
+      )}
+
+      <aside
+        aria-label="Hauptnavigation"
+        className={
+          'fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-3rem))] '
+          + 'max-w-full flex-col overflow-y-auto bg-slate-950 p-5 text-white '
+          + 'shadow-2xl transition-transform duration-200 lg:static lg:z-auto '
+          + 'lg:w-auto lg:translate-x-0 lg:p-6 lg:shadow-none '
+          + (menuOpen ? 'translate-x-0' : '-translate-x-full')
+        }
+      >
+
+      <div className="mb-8 flex min-w-0 items-center gap-3 lg:mb-10 lg:gap-4">
 
         <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center font-black">
           TVH
         </div>
 
-        <div>
-          <div className="text-2xl font-black">
+        <div className="min-w-0 flex-1">
+          <div className="break-words text-xl font-black lg:text-2xl">
             TV Homburg
           </div>
 
@@ -34,6 +90,15 @@ export default function Sidebar({
             CORE MERGE
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen(false)}
+          aria-label="Navigation schließen"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 lg:hidden"
+        >
+          <X size={24} aria-hidden="true" />
+        </button>
 
       </div>
 
@@ -43,7 +108,7 @@ export default function Sidebar({
           icon={<LayoutDashboard size={18} />}
           label="Dashboard"
           active={activePage === 'dashboard'}
-          onClick={() => onNavigate?.('dashboard')}
+          onClick={() => navigate('dashboard')}
         />
 
         <NavItem
@@ -72,30 +137,31 @@ export default function Sidebar({
           icon={<ClipboardList size={18} />}
           label="Spiele verwalten"
           active={activePage === 'admin-games'}
-          onClick={() => onNavigate?.('admin-games')}
+          onClick={() => navigate('admin-games')}
         />
 
         <NavItem
           icon={<Calendar size={18} />}
           label="Spielimport"
           active={activePage === 'admin-game-import'}
-          onClick={() => onNavigate?.('admin-game-import')}
+          onClick={() => navigate('admin-game-import')}
         />
 
       </nav>
 
       {isAdmin && (
-        <div className="mt-8 border-t border-white/10 pt-6">
+        <div className="mt-auto border-t border-white/10 pt-6 lg:mt-8">
           <NavItem
             icon={<LogOut size={18} />}
             label={authLoading ? 'Abmeldung läuft …' : 'Abmelden'}
             disabled={authLoading}
-            onClick={onLogout}
+            onClick={logout}
           />
         </div>
       )}
 
-    </aside>
+      </aside>
+    </>
   )
 }
 
@@ -114,7 +180,7 @@ function NavItem({
       disabled={disabled}
       aria-current={active ? 'page' : undefined}
       className={
-        "w-full h-12 rounded-2xl px-4 flex items-center gap-3 " +
+        "flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left " +
         (active
           ? "bg-emerald-600"
           : disabled

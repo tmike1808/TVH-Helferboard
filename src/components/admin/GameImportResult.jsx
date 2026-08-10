@@ -1,7 +1,7 @@
 function ResultValue({ label, value }) {
   return (
-    <li className="flex items-center justify-between gap-4 border-b border-slate-200 py-2 last:border-0">
-      <span>{label}</span>
+    <li className="flex min-w-0 items-center justify-between gap-4 border-b border-slate-200 py-2 last:border-0">
+      <span className="min-w-0 break-words">{label}</span>
       <strong>{value}</strong>
     </li>
   )
@@ -38,7 +38,7 @@ export default function GameImportResult({
 
   return (
     <section
-      className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950 shadow-sm sm:p-7"
+      className="mt-6 min-w-0 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 shadow-sm sm:p-7"
       aria-labelledby="game-import-result-title"
     >
       <h2 id="game-import-result-title" className="text-2xl font-black">
@@ -93,7 +93,7 @@ export default function GameImportResult({
           <summary className="cursor-pointer font-black">
             Übersprungene oder fehlgeschlagene Zeilen
           </summary>
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-3 space-y-2 break-words text-sm">
             {detailRows.map(row => (
               <li key={row.key}>
                 <strong>
@@ -111,7 +111,7 @@ export default function GameImportResult({
       <button
         type="button"
         onClick={onReset}
-        className="mt-6 h-12 rounded-2xl border border-emerald-700 px-5 font-bold text-emerald-900 hover:bg-emerald-100"
+        className="mt-6 h-12 w-full rounded-2xl border border-emerald-700 px-5 font-bold text-emerald-900 hover:bg-emerald-100 sm:w-auto"
       >
         Import zurücksetzen
       </button>

@@ -1,5 +1,17 @@
 # Changelog
 
+## V24.0.6.0 – Sprint 3 Mobile UX / Responsive Fix
+- Mobile Navigation als einklappbaren Drawer mit ausreichend großen Touch-Zielen umgesetzt
+- KPI-Bereich mobil auf ein belastbares 2×2-Grid und Desktop weiterhin auf vier Spalten umgestellt
+- Team- und Kategoriefilter mobil auf volle Breite gestapelt und den bekannten Body-Overflow beseitigt
+- MatchCards für lange Team- und Gegnernamen sowie Rollen auf ein responsives 1-/2-/3-/5-Spaltenraster umgestellt
+- Anwurfzeit aus `games.start_time` lokal als `HH:mm Uhr` auf Mobil und Desktop ergänzt
+- Admin-Listen, Formulare, Dialoge, Login und Importansicht gegen schmale Viewports abgesichert
+- Breite Importtabellen weiterhin ausschließlich innerhalb ihres begrenzten Containers horizontal scrollbar gehalten
+- Dashboard-Spiele als kleine präsentationale RB-8-Korrektur chronologisch nach `start_time` sortiert
+- Drei automatisierte Tests für lokale Datums-/Zeitformatierung ergänzt
+- Keine Datenbank-, RLS-, Migrations- oder Importlogik geändert
+
 ## V24.0.5.6 – Sprint 2B
 - Bestätigten Excel-Import für ausschließlich erneut geprüfte Heimspiele ergänzt
 - Vor jeder Mutation vorhandene Spiele erneut geladen und Remote- sowie Dateiduplikate nochmals geprüft

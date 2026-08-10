@@ -1,9 +1,8 @@
 # TVH Helfer Dashboard
 
-Stand dieser Bestandsaufnahme: 27. Juli 2026. Grundlage ist der Commit
-`e2db2d6` (`V24.0.5.4 Spielverwaltung abschließen und Helferrollen
-aktualisieren`) sowie der noch nicht committete Arbeitsstand von Sprint 2A
-und Sprint 2B.
+Stand dieser Bestandsaufnahme: 10. August 2026. Grundlage ist der Commit
+`d4b0555` (`V24.0.5.6 Excel-Import vorbereiten und kontrolliert
+durchführen`) sowie der noch nicht committete Arbeitsstand von Sprint 3.
 
 ## 1. Projektziel
 
@@ -16,8 +15,10 @@ geschützt und besitzt vollständige Abläufe zum Anzeigen, Anlegen, Bearbeiten
 und Löschen von Spielen. Sprint 2A ergänzt eine geschützte
 Excel-Importvorschau mit Team-Mapping und Duplikaterkennung. Sprint 2B ergänzt
 den bestätigten Import erneut geprüfter Heimspiele, Teilergebnisse,
-Doppelauslösungsschutz und den reload-freien Dashboard-Refresh. Die 63 Spiele
-aus der vollständigen Beispieldatei sind noch nicht produktiv importiert.
+Doppelauslösungsschutz und den reload-freien Dashboard-Refresh. In der
+konfigurierten produktionsnahen Instanz sind inzwischen 63 Saisonspiele
+vorhanden. Sprint 3 behebt die relevanten mobilen Overflow-Probleme und zeigt
+Datum sowie Anwurfzeit in den MatchCards lesbar an.
 
 ## 2. Technischer Ist-Zustand
 
@@ -367,8 +368,9 @@ wieder entfernt.
   Freischaltung eines Auth-Benutzers; dieser Ablauf ist end-to-end bestätigt.
 - Kalender, Helferansicht und Teams sind deaktiviert und haben keine Funktion.
 - Es gibt keine URL-basierte Navigation; die aktuelle Seite wird nur im lokalen Zustand von `App` gehalten.
-- Die vollständigen 63 Spiele aus `Spiele.xlsx` sind noch nicht produktiv
-  importiert; dafür ist eine separate ausdrückliche Freigabe erforderlich.
+- Die konfigurierte Instanz enthält inzwischen 63 Saisonspiele. Sprint 3
+  behandelt diese ausschließlich lesend; weder Import- noch Spieldaten werden
+  im Rahmen des UX-Refactorings verändert.
 - Die Spiele-Duplikatprüfung erfolgt auf Anwendungsebene direkt vor dem
   Import. Eine zusätzliche DB-Unique-Regel wurde nicht eingeführt, weil das
   freie Gegnerfeld ohne externe fachliche Spiel-ID keine zweifelsfrei
@@ -572,9 +574,24 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 ### RB-6 – Mobile Filterdarstellung
 
-- Bekannten horizontalen Overflow des Dashboard-Kategoriefilters beheben.
-- Prüfung bei 390 Pixel Breite.
-- Keine ungewollte horizontale Seitenbewegung.
+- In Sprint 3 umgesetzt: Team- und Kategoriefilter nutzen mobil die volle
+  verfügbare Breite und stehen untereinander.
+- Bei 320, 375, 390 und 430 Pixel geprüft.
+- Kein ungewollter horizontaler Body-Overflow.
+
+### RB-7 – Anwurfzeiten anzeigen
+
+- In Sprint 3 umgesetzt.
+- MatchCards zeigen die Anwurfzeit aus `games.start_time` lokal im Format
+  `HH:mm Uhr` auf Mobil und Desktop.
+- Gespeicherte Zeitwerte bleiben unverändert.
+
+### RB-8 – Chronologische Spielsortierung
+
+- In Sprint 3 als kleine präsentationale Korrektur umgesetzt.
+- Die gefilterte Dashboard-Liste wird auf einer Kopie chronologisch nach
+  `start_time` sortiert.
+- Remote-Datensätze werden weder aktualisiert noch umsortiert gespeichert.
 
 ## 7. Entwicklungsregeln
 
@@ -625,6 +642,7 @@ geprüft dokumentiert.
 - **V24.0.5.6:** Sprint 2B ergänzt bestätigten Spieleimport, erneute
   Remote-Duplikatprüfung, Teilergebnisse, Refresh und das freiwillige
   Speichern manueller Aliase.
-- **V24.0.6:** Produktivfreigabe des vollständigen Excel-Spielplans und
-  öffentliches Deployment.
+- **V24.0.6.0:** Sprint 3 behebt Mobile-Overflow, führt den responsiven Drawer,
+  mobile KPI-/Filter-/Rollenlayouts, Anwurfzeiten und die chronologische
+  Dashboard-Sortierung ein.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

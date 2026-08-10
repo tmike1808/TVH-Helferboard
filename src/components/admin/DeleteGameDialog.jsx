@@ -54,7 +54,7 @@ export default function DeleteGameDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 sm:p-4"
       role="presentation"
     >
       <section
@@ -62,13 +62,13 @@ export default function DeleteGameDialog({
         aria-modal="true"
         aria-labelledby="delete-game-title"
         aria-describedby="delete-game-description"
-        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl sm:p-8"
+        className="max-h-[calc(100dvh-1.5rem)] w-full min-w-0 max-w-lg overflow-y-auto rounded-3xl bg-white p-5 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:p-8"
       >
         <h2 id="delete-game-title" className="text-2xl font-black">
           Spiel löschen?
         </h2>
 
-        <p id="delete-game-description" className="mt-4 text-slate-700">
+        <p id="delete-game-description" className="mt-4 break-words text-slate-700">
           Möchten Sie das Spiel <strong>{getTeams(game)}</strong> am{' '}
           <strong>{formatDate(game.start_time)}</strong> wirklich löschen?
         </p>
@@ -93,7 +93,7 @@ export default function DeleteGameDialog({
             type="button"
             onClick={onCancel}
             disabled={deleting}
-            className="h-12 rounded-2xl border border-slate-300 px-5 font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+            className="h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
           >
             Abbrechen
           </button>
@@ -102,7 +102,7 @@ export default function DeleteGameDialog({
             type="button"
             onClick={onConfirm}
             disabled={deleting}
-            className="h-12 rounded-2xl bg-red-600 px-5 font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:bg-red-300"
+            className="h-12 w-full rounded-2xl bg-red-600 px-5 font-bold text-white hover:bg-red-700 disabled:cursor-wait disabled:bg-red-300 sm:w-auto"
           >
             {deleting ? 'Spiel wird gelöscht …' : 'Spiel löschen'}
           </button>

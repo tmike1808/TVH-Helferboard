@@ -70,7 +70,7 @@ function TeamMapping({
         event.target.value
       )}
       aria-label={`Team für ${row.importTeamName || `Zeile ${row.rowNumber}`} zuordnen`}
-      className="h-10 min-w-56 rounded-xl border border-slate-300 bg-white px-3 disabled:cursor-wait disabled:bg-slate-100"
+      className="h-10 min-w-56 max-w-full rounded-xl border border-slate-300 bg-white px-3 disabled:cursor-wait disabled:bg-slate-100"
     >
       <option value="">Nicht zugeordnet</option>
       {teams.map(team => (
@@ -91,7 +91,7 @@ export default function GameImportPreview({
   const summary = getImportSummary(rows)
 
   return (
-    <section aria-labelledby="import-preview-title">
+    <section className="min-w-0 max-w-full" aria-labelledby="import-preview-title">
       <div className="mb-5">
         <h2 id="import-preview-title" className="text-2xl font-black">
           Importvorschau
@@ -126,8 +126,8 @@ export default function GameImportPreview({
         <SummaryCard label="Übersprungen" value={summary.skipped} />
       </div>
 
-      <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1120px] w-full border-collapse text-left">
+      <div className="max-w-full overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[1120px] border-collapse text-left">
           <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500">
             <tr>
               <th className="px-4 py-4">Status</th>

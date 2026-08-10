@@ -5,6 +5,10 @@ import {
   createAssignment,
   deleteAssignment
 } from '../services/helperService'
+import {
+  formatGameDate,
+  formatGameTime
+} from '../utils/formatDateTime'
 
 export default function MatchCard({ game }) {
 
@@ -42,20 +46,23 @@ export default function MatchCard({ game }) {
     : 'bg-orange-100 text-orange-700'
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+    <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
 
-      <div
-        className="flex justify-between items-start cursor-pointer"
+      <button
+        type="button"
+        className="flex w-full min-w-0 flex-col items-start justify-between gap-4 text-left sm:flex-row"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
       >
 
-        <div>
+        <div className="w-full min-w-0 max-w-full">
 
-          <div className="text-sm font-bold text-emerald-600 mb-2">
-            {new Date(game.start_time).toLocaleDateString('de-DE')}
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-bold text-emerald-700">
+            <span>{formatGameDate(game.start_time)}</span>
+            <span>{formatGameTime(game.start_time)}</span>
           </div>
 
-          <h2 className="text-3xl font-black">
+          <h2 className="break-words text-xl font-black leading-tight sm:text-2xl lg:text-3xl">
             {team?.name || 'Team'} – {game.opponent}
           </h2>
 
@@ -65,19 +72,19 @@ export default function MatchCard({ game }) {
 
         </div>
 
-        <div
+        <span
           className={
             statusClass +
-            " px-4 py-3 rounded-2xl font-black"
+            " shrink-0 rounded-2xl px-4 py-3 text-sm font-black sm:text-base"
           }
         >
           {gameAssignments.length} / {totalSlots} besetzt
-        </div>
+        </span>
 
-      </div>
+      </button>
 
       {expanded && (
-        <div className="grid grid-cols-5 gap-3 mt-6">
+        <div className="mt-6 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 
           {teamRoles.map(role => {
 
@@ -101,7 +108,7 @@ export default function MatchCard({ game }) {
         </div>
       )}
 
-    </div>
+    </article>
   )
 }
 
@@ -153,14 +160,14 @@ function RoleCard({
   return (
     <div
       className={
-        "rounded-2xl p-4 border-2 " +
+        "min-w-0 rounded-2xl border-2 p-4 " +
         (open
           ? "border-orange-400"
           : "border-emerald-500")
       }
     >
 
-      <div className="font-bold text-sm">
+      <div className="break-words text-sm font-bold leading-5">
         {role.name}
       </div>
 
@@ -173,18 +180,20 @@ function RoleCard({
         {helpers.map(helper => (
           <div
             key={helper.id}
-            className="bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold flex items-center justify-between"
+            className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold"
           >
 
-            <span>
+            <span className="min-w-0 break-words">
               {helper.helper_name}
             </span>
 
             <button
+              type="button"
               onClick={() => handleRemove(helper.id)}
-              className="w-7 h-7 rounded-lg bg-red-500 text-white text-xs font-black"
+              aria-label={`${helper.helper_name} austragen`}
+              className="min-h-10 shrink-0 rounded-xl bg-red-600 px-3 text-xs font-black text-white hover:bg-red-700"
             >
-              X
+              Austragen
             </button>
 
           </div>
@@ -199,13 +208,14 @@ function RoleCard({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50"
+            className="h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3"
           />
 
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving}
-            className="w-full h-10 rounded-xl bg-emerald-600 text-white font-bold"
+            className="h-12 w-full rounded-xl bg-emerald-600 text-white font-bold disabled:cursor-wait disabled:bg-emerald-400"
           >
             {saving ? 'Speichert...' : 'Eintragen'}
           </button>

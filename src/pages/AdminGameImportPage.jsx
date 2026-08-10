@@ -316,7 +316,7 @@ export default function AdminGameImportPage() {
     || inputsLocked
 
   return (
-    <section>
+    <section className="min-w-0 max-w-full">
       <Topbar
         title="Spielimport"
         subtitle="Excel-Datei prüfen und Mannschaften zuordnen"
@@ -343,7 +343,7 @@ export default function AdminGameImportPage() {
 
       {pageReady && (
         <>
-          <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <div className="mb-6 min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-7">
             <h2 className="text-2xl font-black">Excel-Datei auswählen</h2>
             <p className="mt-2 text-slate-600">
               Erlaubtes Format: .xlsx. Die Datei wird ausschließlich in
@@ -365,7 +365,7 @@ export default function AdminGameImportPage() {
                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onChange={handleFileChange}
                   disabled={inputsLocked}
-                  className="block w-full rounded-2xl border border-slate-300 bg-white text-sm file:mr-4 file:border-0 file:bg-slate-900 file:px-4 file:py-3 file:font-bold file:text-white hover:file:bg-slate-800 disabled:cursor-wait disabled:bg-slate-100"
+                  className="block w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white text-sm file:mr-2 file:border-0 file:bg-slate-900 file:px-3 file:py-3 file:font-bold file:text-white hover:file:bg-slate-800 disabled:cursor-wait disabled:bg-slate-100 sm:file:mr-4 sm:file:px-4"
                 />
               </div>
 
@@ -373,7 +373,7 @@ export default function AdminGameImportPage() {
                 type="button"
                 onClick={resetFile}
                 disabled={!selectedFile || inputsLocked}
-                className="h-12 rounded-2xl border border-slate-300 px-5 font-bold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
                 Auswahl zurücksetzen
               </button>
@@ -422,7 +422,7 @@ export default function AdminGameImportPage() {
               />
 
               {manualMappingEntries.length > 0 && (
-                <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                <section className="mt-6 min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-7">
                   <h2 className="text-xl font-black">
                     Manuelle Zuordnungen
                   </h2>
@@ -473,7 +473,7 @@ export default function AdminGameImportPage() {
                   type="button"
                   onClick={openConfirmDialog}
                   disabled={importButtonDisabled}
-                  className="h-12 rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                  className="h-12 w-full rounded-2xl bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 sm:w-auto"
                 >
                   {importing
                     ? 'Import läuft …'

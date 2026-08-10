@@ -7,3 +7,10 @@ body {
   @apply bg-slate-100 text-slate-900;
   font-family: Inter, Arial, sans-serif;
 }
+
+html,
+body,
+#root {
+  max-width: 100%;
+  min-width: 0;
+}

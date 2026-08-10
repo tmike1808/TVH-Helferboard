@@ -1,5 +1,16 @@
 # Changelog
 
+## V24.0.7.1 – Mindestbesetzung und Durchführbarkeitsstatus
+- `helper_roles.minimum_staff` mit sicherer Migration, NOT-NULL- und Werteconstraint eingeführt
+- Mindestbesetzung für Aktive/Verkauf und Aktive/Ordner auf 3 von 4, für alle übrigen Rollen auf die vollständige Slotzahl gesetzt
+- Rollen- und Spielstatus in reine Helperlogik mit Bedarf, Durchführbarkeit und Vollbelegung gekapselt
+- MatchCards um verständliche textliche Statusangaben einschließlich weiterhin offener Plätze ergänzt
+- KPI „Offene Dienste“ und Rollen-Offenfilter ausdrücklich auf tatsächlich freie Slots begrenzt
+- Seed-Daten und automatisierte Status-, KPI-, Offenfilter- und Spielstatusprüfungen ergänzt
+- Keine RLS-, Policy- oder Grant-Änderungen und keine dauerhaften Spiele-, Helfer- oder Importdatenänderungen vorgenommen
+- Migration kontrolliert und idempotent auf der echten Instanz angewendet; RLS, Policies, Grants und Bestandszahlen blieben unverändert
+- Reale 2/4-, 3/4-, 4/4-, KPI-, Offenfilter- und Mobile-Abnahme durchgeführt und sämtliche Testhelfer bereinigt
+
 ## V24.0.7.0 – Spieltagsgruppierung und Spieltagfilter
 - MatchCards dynamisch nach lokalen Spieltagen gruppiert; Samstag und der unmittelbar folgende Sonntag bilden eine gemeinsame Gruppe
 - Stabile Spieltags-IDs, korrekte Zeitraumlabels sowie chronologische Gruppen- und Spielsortierung ergänzt

@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 10. August 2026. Grundlage ist der Commit
-`e561f5b` (`V24.0.6.4: Fachliche Sortierung der Helferrollen`) sowie der noch
-nicht committete Arbeitsstand von Sprint 6.
+`59f5766` (`V24.0.7.0 Sprint 6: Spieltagsgruppierung und Spieltagfilter`) sowie
+der noch nicht committete Arbeitsstand von Sprint 7.
 
 ## 1. Projektziel
 
@@ -27,6 +27,11 @@ offene ausgewählte Rollen.
 Sprint 6 ergänzt die dynamische Gruppierung der MatchCards nach lokalen
 Spieltagen sowie einen unabhängigen Spieltag-Multiselect. Samstag und der
 unmittelbar folgende Sonntag werden dabei gemeinsam dargestellt.
+Sprint 7 ergänzt eine fachliche
+Mindestbesetzung. Aktive/Verkauf und Aktive/Ordner sind mit 3/4 Helfern
+durchführbar, bleiben bei einem freien Slot aber weiterhin im Offenfilter und
+in der KPI „Offene Dienste“ offen. Die Migration ist auf der konfigurierten
+Remote-Datenbank angewendet und end-to-end geprüft.
 
 ## 2. Technischer Ist-Zustand
 
@@ -168,6 +173,12 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 ```
 
 `node_modules/`, `dist/`, lokale `.env`-Varianten und Editor-Dateien werden über `.gitignore` ausgeschlossen. `.env.example` ist ausdrücklich von der allgemeinen `.env.*`-Regel ausgenommen und enthält ausschließlich Platzhalter.
+
+Seit Sprint 6 und dem lokalen Sprint-7-Arbeitsstand gehören außerdem
+`src/utils/matchdays.js`, `src/utils/staffingStatus.js`,
+`tests/matchdays.test.js`, `tests/staffingStatus.test.js`, der Sprint-6-Report
+sowie die angewendete Migration
+`20260810000300_add_helper_role_minimum_staff.sql` zur Struktur.
 
 ### Zustandsverwaltung
 
@@ -364,7 +375,9 @@ nach Reload oder Löschung.
 - `MultiSelectFilter`: kleine kontrollierte Checkbox-Popover-Komponente mit
   Auswahlzusammenfassung, Leeren, Klick-außerhalb-/Escape-Schließen,
   Tastaturbedienung und sichtbaren Fokuszuständen.
-- `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige sowie Ein- und Austragen von Helfern.
+- `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige, textlich
+  unterscheidbaren Mindest-/Durchführbarkeits-/Vollstatus sowie Ein- und
+  Austragen von Helfern.
 - `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-,
   Leer-, Formular-, Speicher-, Auswahl-, Einzel-/Sammellösch- und
   Meldungszustand; aktualisiert nach Mutationen Adminliste und Dashboard-Store.
@@ -419,10 +432,14 @@ nach Reload oder Löschung.
 - KPI-Anzeige auf Basis der aktuell gefilterten Spiele.
 - Dynamisches Laden der Rollen passend zur Teamkategorie.
 - Sortierung der Rollen in MatchCards nach `order_index`.
+- Rollen- und Spielstatus als reine Helperlogik mit den Zuständen
+  `NEEDS_STAFF`, `VIABLE` und `FULL`.
+- Grün bedeutet, dass die Mindestbesetzung jeder notwendigen Rolle erreicht
+  ist; Text unterscheidet durchführbare Spiele mit offenen Plätzen von
+  vollständiger Besetzung.
 - Berechnung der benötigten Plätze aus der Summe von `helper_roles.slots`.
-- Berechnung der KPI „Offene Dienste“ aus den dynamischen Rollenplätzen je
-  Spielkategorie abzüglich vorhandener Helferzuordnungen.
-- Orange Statusdarstellung bei offenen Plätzen und grüne Statusdarstellung bei vollständiger Besetzung.
+- Berechnung der KPI „Offene Dienste“ weiterhin rollenweise aus tatsächlich
+  freien Slots; `minimum_staff` reduziert diese Zahl nicht.
 - Eintragen eines getrimmten Helfernamens in eine noch offene Rolle.
 - Clientseitiges Verhindern eines namensgleichen Doppeleintrags innerhalb derselben Rolle und desselben Spiels, ohne Beachtung der Groß-/Kleinschreibung.
 - Austragen über das Löschen einer Helferzuordnung.
@@ -502,17 +519,17 @@ wieder entfernt.
   freie Gegnerfeld ohne externe fachliche Spiel-ID keine zweifelsfrei
   belastbare Datenbankidentität liefert.
 - Es gibt keinen handball.net-Import.
-- Die MatchCard ermittelt „vollständig besetzt“ anhand der Gesamtzahl aller Spielzuordnungen. Zuordnungen zu nicht passenden Rollen können den Status verfälschen.
+- Die MatchCard ermittelt den Gesamtstatus rollenweise. Ein Spiel ist erst
+  durchführbar, wenn jede Rolle ihrer Kategorie ihre Mindestbesetzung erreicht;
+  freie Slots bleiben separat sichtbar.
 - Fehler aus `helperService` werden in `MatchCard` nicht anhand des Rückgabewerts ausgewertet. Ein fehlgeschlagenes Einfügen kann daher trotzdem das Eingabefeld leeren; ein verständlicher Fehler wird nicht zuverlässig angezeigt.
 - Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die DB-0-Policy muss deshalb für die öffentliche Austragefunktion derzeit das Löschen jeder sichtbaren Zuordnung anhand ihrer ID erlauben.
 - Die DB-0-Migration verhindert namensgleiche Doppeleinträge je Spiel und Rolle ohne Beachtung der Groß-/Kleinschreibung. Eine konkurrierende Überbuchung über `helper_roles.slots` wird weiterhin nicht serverseitig verhindert.
 - Das Dashboard besitzt weiterhin keine eigene Lade-, Leer-, Netzwerkfehler- oder Wiederholungsansicht; die Admin-Spieleübersicht behandelt Laden, Fehler und leere Daten.
-- Die 19 automatisierten Tests decken Excel-Parser, Zeitnormalisierung,
-  Pflichtspalten, ungültige Werte, Team-Mapping, Duplikaterkennung,
-  Payloadbegrenzung, erneute Remote-Prüfung, Wiederholungsimport,
-  Mehrfachauslösung, Teilerfolge, Refresh und Alias-Konflikte ab. Für das
-  übrige Dashboard und Spiele-CRUD bestehen weiterhin keine automatisierten
-  Komponenten- oder Integrationstests.
+- 100 automatisierte Tests decken unter anderem Dashboardfilter,
+  Spieltagsbildung, Rollenpriorisierung, Mindestbesetzung, KPI-/Offenstatus,
+  Excel-Parser und Importworkflow ab. Für das Spiele-CRUD bestehen weiterhin
+  keine automatisierten Komponenten- oder End-to-End-Tests.
 - Es gibt keine Deployment-Konfiguration im Repository.
 
 Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von
@@ -568,6 +585,7 @@ verlässlichen Spalten ableiten.
 | `category` | Zuordnung zu einer Teamkategorie | `text not null`, Check auf `Aktive`/`Jugend` |
 | `order_index` | aufsteigende Sortierung der Rollen | `integer not null`, positiv, je Kategorie eindeutig |
 | `slots` | benötigte Anzahl und Offen-/Voll-Berechnung | `integer not null`, größer als 0 |
+| `minimum_staff` | Mindestbesetzung für Durchführbarkeit; beeinflusst weder freie Slots noch Offenfilter | `integer not null`, größer als 0 und höchstens `slots`; durch Sprint-7-Migration ergänzt |
 | `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
 
 ### `helper_assignments`
@@ -612,13 +630,20 @@ sie nur die Rolle `authenticated`.
   5. Kuchen – 3 Plätze
   6. Brezeln / Sonstiges – 1 Platz
   7. Trikots – 1 Platz
-- Orange bedeutet: Es sind noch Helferplätze offen.
-- Grün bedeutet: Alle benötigten Helferplätze sind besetzt.
+- Orange bedeutet: Die fachliche Mindestbesetzung ist noch nicht erreicht.
+- Grün bedeutet: Die Mindestbesetzung ist erreicht. Ein zusätzlicher Text
+  unterscheidet „durchführbar, Plätze offen“ von „vollständig besetzt“.
+- Offene Dienste und Offenfilter richten sich immer nach `slots`, nicht nach
+  `minimum_staff`.
 
 Die Farblogik und Sortierung sind im Code umgesetzt. Die Datenmigration aus
 Sprint 1C.1 aktualisiert bestehende Projekte auf diese offiziellen Werte; der
 Seed enthält dieselben Werte für neue Datenbanken. Die Gesamtbedarfe betragen
 12 Plätze für Aktive und 10 Plätze für Jugend.
+
+Für Aktive/Verkauf und Aktive/Ordner gilt `minimum_staff = 3` bei
+`slots = 4`. Für alle anderen Rollen entspricht `minimum_staff` exakt
+`slots`.
 
 ## 5. Eingefrorener MVP-Umfang
 
@@ -733,12 +758,9 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 ### Weiterer Release-Backlog
 
-- `minimum_staff` und fachlicher Durchführbarkeitsstatus: Für Aktive/Verkauf
-  und Aktive/Ordner bleiben jeweils `slots = 4`; später soll jeweils
-  `minimum_staff = 3` gelten und eine Belegung von 3/4 als durchführbar/grün
-  dargestellt werden. Die KPI „Offene Dienste“ zählt weiterhin tatsächlich
-  freie Plätze, sodass 3/4 dort weiterhin einen offenen Platz bedeutet. Diese
-  Logik ist ausdrücklich nicht Teil von Sprint 5.
+- `minimum_staff` und fachlicher Durchführbarkeitsstatus sind in Sprint 7
+  umgesetzt, remote migriert und end-to-end abgenommen.
+- Weiter offen bleibt RB-5: verbesserter Re-Import.
 
 ## 7. Entwicklungsregeln
 
@@ -802,4 +824,6 @@ geprüft dokumentiert.
   Dashboardfilter fachlich je Kategorie mit alphabetischem Fallback.
 - **V24.0.7.0:** Sprint 6 setzt RB-3 und RB-4 mit lokaler dynamischer
   Spieltagsgruppierung und unabhängigem Spieltag-Multiselect um.
+- **V24.0.7.1:** Sprint 7 führt `minimum_staff` sowie getrennte Zustände für
+  Helferbedarf, Durchführbarkeit mit offenen Plätzen und Vollbelegung ein.
 - **Später:** handball.net-Import; nicht Teil des aktuellen MVP.

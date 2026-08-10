@@ -9,6 +9,13 @@ import {
   formatGameDate,
   formatGameTime
 } from '../utils/formatDateTime'
+import {
+  formatGameStaffingStatus,
+  formatRoleStaffingStatus,
+  getGameStaffingStatus,
+  getRoleStaffingStatus,
+  STAFFING_STATUS
+} from '../utils/staffingStatus'
 
 export default function MatchCard({ game }) {
 
@@ -33,15 +40,8 @@ export default function MatchCard({ game }) {
     a => a.game_id === game.id
   )
 
-  const totalSlots = teamRoles.reduce(
-    (sum, role) => sum + role.slots,
-    0
-  )
-
-  const allFilled =
-    gameAssignments.length >= totalSlots
-
-  const statusClass = allFilled
+  const staffingStatus = getGameStaffingStatus(teamRoles, gameAssignments)
+  const statusClass = staffingStatus.status !== STAFFING_STATUS.NEEDS_STAFF
     ? 'bg-emerald-100 text-emerald-700'
     : 'bg-orange-100 text-orange-700'
 
@@ -75,10 +75,10 @@ export default function MatchCard({ game }) {
         <span
           className={
             statusClass +
-            " shrink-0 rounded-2xl px-4 py-3 text-sm font-black sm:text-base"
+            " max-w-full break-words rounded-2xl px-4 py-3 text-center text-sm font-black sm:max-w-xs sm:shrink-0 sm:text-base"
           }
         >
-          {gameAssignments.length} / {totalSlots} besetzt
+          {formatGameStaffingStatus(staffingStatus)}
         </span>
 
       </button>
@@ -123,7 +123,9 @@ function RoleCard({
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const open = filled < role.slots
+  const staffingStatus = getRoleStaffingStatus(role, filled)
+  const open = staffingStatus.openSlots > 0
+  const viable = staffingStatus.status !== STAFFING_STATUS.NEEDS_STAFF
 
   async function handleSave() {
 
@@ -161,9 +163,9 @@ function RoleCard({
     <div
       className={
         "min-w-0 rounded-2xl border-2 p-4 " +
-        (open
-          ? "border-orange-400"
-          : "border-emerald-500")
+        (viable
+          ? "border-emerald-500"
+          : "border-orange-400")
       }
     >
 
@@ -171,8 +173,13 @@ function RoleCard({
         {role.name}
       </div>
 
-      <div className="mt-2 font-black text-xl">
-        {filled} / {role.slots}
+      <div
+        className={
+          "mt-2 break-words text-sm font-black leading-5 " +
+          (viable ? "text-emerald-700" : "text-orange-700")
+        }
+      >
+        {formatRoleStaffingStatus(staffingStatus)}
       </div>
 
       <div className="space-y-2 mt-3">

@@ -20,29 +20,32 @@ do update set
   updated_at = now();
 
 -- OFFIZIELLE VEREINSWERTE:
--- Reihenfolge, Bezeichnungen und slots entsprechen dem bestätigten Bedarf.
+-- Reihenfolge, Bezeichnungen, slots und Mindestbesetzung entsprechen dem
+-- bestätigten Bedarf.
 insert into public.helper_roles (
   name,
   category,
   slots,
+  minimum_staff,
   order_index
 )
 values
-  ('Zeitnehmer', 'Aktive', 1, 1),
-  ('Sekretär', 'Aktive', 1, 2),
-  ('Wischer', 'Aktive', 2, 3),
-  ('Verkauf', 'Aktive', 4, 4),
-  ('Ordner', 'Aktive', 4, 5),
-  ('Zeitnehmer', 'Jugend', 1, 1),
-  ('Sekretär', 'Jugend', 1, 2),
-  ('Schiri', 'Jugend', 1, 3),
-  ('Verkauf', 'Jugend', 2, 4),
-  ('Kuchen', 'Jugend', 3, 5),
-  ('Brezeln / Sonstiges', 'Jugend', 1, 6),
-  ('Trikots', 'Jugend', 1, 7)
+  ('Zeitnehmer', 'Aktive', 1, 1, 1),
+  ('Sekretär', 'Aktive', 1, 1, 2),
+  ('Wischer', 'Aktive', 2, 2, 3),
+  ('Verkauf', 'Aktive', 4, 3, 4),
+  ('Ordner', 'Aktive', 4, 3, 5),
+  ('Zeitnehmer', 'Jugend', 1, 1, 1),
+  ('Sekretär', 'Jugend', 1, 1, 2),
+  ('Schiri', 'Jugend', 1, 1, 3),
+  ('Verkauf', 'Jugend', 2, 2, 4),
+  ('Kuchen', 'Jugend', 3, 3, 5),
+  ('Brezeln / Sonstiges', 'Jugend', 1, 1, 6),
+  ('Trikots', 'Jugend', 1, 1, 7)
 on conflict (name, category)
 do update set
   slots = excluded.slots,
+  minimum_staff = excluded.minimum_staff,
   order_index = excluded.order_index,
   updated_at = now();
 

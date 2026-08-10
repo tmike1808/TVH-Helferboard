@@ -10,13 +10,14 @@ Die versionierte Grundlage besteht aus:
 - `supabase/migrations/20260727000400_add_team_import_name.sql`
 - `supabase/migrations/20260727000500_complete_import_teams.sql`
 - `supabase/migrations/20260810000100_shorten_team_names.sql`
+- `supabase/migrations/20260810000300_add_helper_role_minimum_staff.sql`
 - `supabase/seed.sql`
 
 Die erste Migration ist die einmalig auszuführende Basismigration. Die
 weiteren Migrationen werden in der Reihenfolge ihres Zeitstempels angewendet.
 `seed.sql` ist für eine leere Datenbank wiederholbar und enthält die
 bestätigten Vereinsmannschaften, ihre Excel-Importnamen sowie die
-Helferrollen mit offiziellen Vereinswerten.
+Helferrollen mit offiziellen Vereinswerten und Mindestbesetzungen.
 
 ## 1. Neues Supabase-Projekt anlegen
 
@@ -40,13 +41,31 @@ Die Datei verwendet eine Transaktion. Schlägt eine Anweisung fehl, wird die Bas
 
 1. `supabase/seed.sql` öffnen.
 2. Die Vereinsmannschaften und ihre optionalen `import_name`-Werte prüfen.
-3. Die vollständigen Rollenbezeichnungen, Reihenfolgen und Slot-Werte gegen
-   die aktuelle Vereinsvorgabe prüfen.
+3. Die vollständigen Rollenbezeichnungen, Reihenfolgen, Slot- und
+   `minimum_staff`-Werte gegen die aktuelle Vereinsvorgabe prüfen.
 4. Den vollständigen Inhalt in einer neuen SQL-Editor-Abfrage ausführen.
 
-Das Seed-Skript enthält nur Daten und kann wegen `ON CONFLICT` erneut ausgeführt werden. Es aktualisiert dabei die definierten Rollenreihenfolgen und Slot-Werte auf den Inhalt der Datei.
+Das Seed-Skript enthält nur Daten und kann wegen `ON CONFLICT` erneut
+ausgeführt werden. Es aktualisiert dabei Rollenreihenfolge, Slotwerte und
+Mindestbesetzung auf den Inhalt der Datei.
 
-## 4. Excel-Importnamen einrichten
+## 4. Mindestbesetzung einrichten
+
+Sprint 7 ergänzt:
+
+- `supabase/migrations/20260810000300_add_helper_role_minimum_staff.sql`
+
+Die Migration fügt `public.helper_roles.minimum_staff` hinzu, setzt zunächst
+für alle Rollen `minimum_staff = slots` und reduziert ausschließlich
+Aktive/Verkauf sowie Aktive/Ordner bei vier Slots auf drei. Ein Constraint
+erzwingt positive Werte bis höchstens `slots`; die Spalte ist final `NOT NULL`.
+RLS, Policies und Grants werden nicht verändert.
+
+Dauerhafte Fachregel: `minimum_staff` entscheidet ausschließlich über die
+Durchführbarkeit. Die KPI „Offene Dienste“ und der Offenfilter zählen weiterhin
+tatsächlich freie Slots bis zur vollständigen Belegung.
+
+## 5. Excel-Importnamen einrichten
 
 Sprint 2A ergänzt die Migration:
 
@@ -88,13 +107,13 @@ aktuellen Instanz. Deshalb wird in Sprint 2A kein solches Feld ergänzt oder
 mit erfundenen Werten befüllt. `gameService` sortiert Teams weiterhin
 alphabetisch nach `name`.
 
-## 5. Project URL und öffentlichen Schlüssel finden
+## 6. Project URL und öffentlichen Schlüssel finden
 
 Die Projekt-URL und den clientgeeigneten öffentlichen Schlüssel zeigt Supabase im **Connect**-Dialog. Die Schlüssel sind außerdem unter **Settings → API Keys** verfügbar. Für dieses Frontend wird nur der öffentliche Anon-/Publishable-Schlüssel verwendet.
 
 Geheime oder privilegierte Schlüssel dürfen niemals in den Browser, in `.env.example`, in Screenshots, in Reports oder in Git gelangen. Die offiziellen Supabase-Hinweise zu Schlüsseln stehen unter [Understanding API keys](https://supabase.com/docs/guides/getting-started/api-keys).
 
-## 6. `.env.local` anlegen
+## 7. `.env.local` anlegen
 
 Im Projektstamm eine lokale, von Git ignorierte Datei `.env.local` anlegen:
 
@@ -111,7 +130,7 @@ Danach den Vite-Entwicklungsserver neu starten, weil Vite Umgebungsvariablen bei
 npm run dev
 ```
 
-## 7. Tabellen und Seed-Daten prüfen
+## 8. Tabellen und Seed-Daten prüfen
 
 Im Table Editor müssen folgende Tabellen vorhanden sein:
 
@@ -135,7 +154,7 @@ select 'helper_assignments', count(*) from public.helper_assignments;
 Die Rollenreihenfolge prüfen:
 
 ```sql
-select category, name, slots, order_index
+select category, name, slots, minimum_staff, order_index
 from public.helper_roles
 order by category, order_index;
 ```
@@ -163,7 +182,7 @@ where schemaname = 'public'
 order by tablename, cmd, policyname;
 ```
 
-## 8. Aktive RLS-Regeln
+## 9. Aktive RLS-Regeln
 
 RLS ist für alle vier Tabellen aktiviert.
 
@@ -185,7 +204,7 @@ RLS ist für alle vier Tabellen aktiviert.
 
 Die RLS- und Grant-Konfiguration folgt der Supabase-Empfehlung, exponierte Tabellen abzusichern und nur benötigte Rechte zu vergeben. Hintergrund: [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
-## 9. Warum Admin-Schreiboperationen ohne Admin-Anmeldung nicht funktionieren
+## 10. Warum Admin-Schreiboperationen ohne Admin-Anmeldung nicht funktionieren
 
 Die sichere DB-0-Grundlage erteilt anonymen Clients absichtlich kein
 Schreibrecht auf `games`. Sprint 1C ergänzt Supabase Auth, `admin_users` und
@@ -207,7 +226,7 @@ eingeführt: Ohne externe fachliche Spiel-ID ist das freie Gegnerfeld keine
 zweifelsfrei belastbare Datenbankidentität. Der Single-Flight-Schutz und die
 erneute Remote-Prüfung begrenzen das Risiko auf Anwendungsebene.
 
-## 10. Admin-Authentifizierung einrichten
+## 11. Admin-Authentifizierung einrichten
 
 Sprint 1C ergänzt die Migration:
 
@@ -269,7 +288,7 @@ Das Löschen aus `admin_users` entzieht nur die Adminrechte. Das zugehörige
 Auth-Konto bleibt in **Authentication → Users** bestehen und kann dort bei
 Bedarf getrennt verwaltet werden.
 
-## 11. Bekannte MVP-Sicherheitsgrenzen
+## 12. Bekannte MVP-Sicherheitsgrenzen
 
 - Helfer besitzen noch keine Konten oder Austrage-Tokens. Deshalb kann die öffentliche Delete-Policy technisch jede sichtbare Helferzuordnung anhand ihrer ID löschen. Ein späteres Besitz- oder Tokenkonzept sollte dies einschränken.
 - `helper_assignments` ist gemäß MVP-Vorgabe öffentlich lesbar; damit sind eingetragene Helfernamen öffentlich. Datenschutz und Namenshinweise müssen vor dem öffentlichen Betrieb fachlich bewertet werden.

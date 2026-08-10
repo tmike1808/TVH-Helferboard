@@ -2,6 +2,7 @@ import {
   getMatchdayIdByGameId,
   pruneSelectedMatchdayIds
 } from './matchdays.js'
+import { getRoleStaffingStatus } from './staffingStatus.js'
 
 export const ALL_CATEGORIES = 'all'
 
@@ -143,11 +144,7 @@ export function countRoleAssignments(assignments, gameId, roleId) {
 }
 
 export function isRoleOpen(role, assignmentCount) {
-  const slots = Number(role?.slots)
-
-  return Number.isFinite(slots)
-    && slots > 0
-    && Number(assignmentCount) < slots
+  return getRoleStaffingStatus(role, assignmentCount).openSlots > 0
 }
 
 export function filterDashboardGames({
@@ -242,36 +239,18 @@ export function calculateDashboardKpis({
   const teamsById = new Map(
     (Array.isArray(teams) ? teams : []).map(team => [team.id, team])
   )
-  const requiredSlotsByCategory = new Map()
-
-  for (const role of Array.isArray(roles) ? roles : []) {
-    const slots = Number(role?.slots)
-
-    if (!Number.isFinite(slots) || slots <= 0) {
-      continue
-    }
-
-    requiredSlotsByCategory.set(
-      role.category,
-      (requiredSlotsByCategory.get(role.category) ?? 0) + slots
-    )
-  }
-
-  const assignmentsByGame = new Map()
-
-  for (const assignment of visibleAssignments) {
-    assignmentsByGame.set(
-      assignment.game_id,
-      (assignmentsByGame.get(assignment.game_id) ?? 0) + 1
-    )
-  }
-
   const openTasks = visibleGames.reduce((total, game) => {
     const category = teamsById.get(game.team_id)?.category
-    const required = requiredSlotsByCategory.get(category) ?? 0
-    const filled = assignmentsByGame.get(game.id) ?? 0
+    const gameRoles = (Array.isArray(roles) ? roles : [])
+      .filter(role => role?.category === category)
+    const gameOpenSlots = gameRoles.reduce((roleTotal, role) => (
+      roleTotal + getRoleStaffingStatus(
+        role,
+        countRoleAssignments(visibleAssignments, game.id, role.id)
+      ).openSlots
+    ), 0)
 
-    return total + Math.max(required - filled, 0)
+    return total + gameOpenSlots
   }, 0)
 
   return {

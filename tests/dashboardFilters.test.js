@@ -428,6 +428,77 @@ test('42. vollständige Filterkombination bleibt gruppenübergreifend AND', () =
   assert.deepEqual(ids(result), ['g-md1'])
 })
 
+test('43. Verkauf und Ordner bleiben bei 3/4 trotz Mindestbesetzung offen', () => {
+  const sale = { ...roles.find(role => role.id === 'a-sale'), minimum_staff: 3 }
+  const order = { ...roles.find(role => role.id === 'a-order'), minimum_staff: 3 }
+
+  for (const role of [sale, order]) {
+    assert.equal(isRoleOpen(role, 2), true)
+    assert.equal(isRoleOpen(role, 3), true)
+    assert.equal(isRoleOpen(role, 4), false)
+  }
+})
+
+test('44. KPI zählt bei Verkauf und Ordner mit 3/4 weiterhin zwei offene Slots', () => {
+  const staffingRoles = [
+    { id: 'sale', name: 'Verkauf', category: 'Aktive', slots: 4, minimum_staff: 3 },
+    { id: 'order', name: 'Ordner', category: 'Aktive', slots: 4, minimum_staff: 3 }
+  ]
+  const staffingAssignments = [
+    ...[1, 2, 3].map(number => assignment(`sale-${number}`, 'g-h1', 'sale')),
+    ...[1, 2, 3].map(number => assignment(`order-${number}`, 'g-h1', 'order'))
+  ]
+  const result = calculateDashboardKpis({
+    games: [games[0]],
+    teams,
+    roles: staffingRoles,
+    assignments: staffingAssignments
+  })
+
+  assert.deepEqual(result, {
+    homeGames: 1,
+    openTasks: 2,
+    assignmentCount: 6,
+    teamCount: 1
+  })
+})
+
+test('45. Offenfilter behält Verkauf und Ordner bei 3/4 und entfernt sie bei 4/4', () => {
+  for (const roleName of ['Verkauf', 'Ordner']) {
+    const role = roles.find(item => item.name === roleName && item.category === 'Aktive')
+    const baseAssignments = [1, 2, 3]
+      .map(number => assignment(`${role.id}-${number}`, 'g-h1', role.id))
+    const filters = {
+      games: [games[0]],
+      teams,
+      roles: roles.map(item => item.id === role.id
+        ? { ...item, minimum_staff: 3 }
+        : item),
+      selectedRoleNames: [roleName],
+      openSelectedRolesOnly: true
+    }
+
+    assert.deepEqual(
+      ids(filterDashboardGames({ ...filters, assignments: baseAssignments.slice(0, 2) })),
+      ['g-h1']
+    )
+    assert.deepEqual(
+      ids(filterDashboardGames({ ...filters, assignments: baseAssignments })),
+      ['g-h1']
+    )
+    assert.deepEqual(
+      filterDashboardGames({
+        ...filters,
+        assignments: [
+          ...baseAssignments,
+          assignment(`${role.id}-4`, 'g-h1', role.id)
+        ]
+      }),
+      []
+    )
+  }
+})
+
 test('34. unbekannte Rolle bleibt hinter den bekannten Rollen sichtbar', () => {
   const rolesWithUnknown = [
     ...roles,

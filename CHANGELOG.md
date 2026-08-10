@@ -1,5 +1,16 @@
 # Changelog
 
+## V24.0.6.1 – Sprint 4 RB-2 und kompakte Teamnamen
+- Admin-Spieleverwaltung um Checkboxen, Auswahlzähler sowie „Alle auswählen/abwählen“ ergänzt
+- Bestätigte Sammellöschung mit begrenzter Spielvorschau, Cascade-Hinweis und mobiler Dialogdarstellung umgesetzt
+- Sequenziellen Service-Workflow mit ID-Validierung, Einzelergebnissen, Teilfehlern, Fortschritt und Parallelitätsschutz ergänzt
+- Adminliste und Dashboard nach erfolgreichen Teillöschungen ohne Browserreload aktualisiert; fehlgeschlagene Spiele bleiben ausgewählt
+- Sichtbare Namen der acht Vereinsmannschaften über eine idempotente Datenmigration auf die bestätigten Kurzformen umgestellt
+- `import_name`, Team-IDs, Spielezuordnungen, Helferzuordnungen, RLS und Policies unverändert gelassen
+- Seed- und Supabase-Setup-Dokumentation auf die kompakten Teamnamen aktualisiert
+- Auswahl-, Sammellösch-, Refresh-, Teilfehler-, Parallelitäts- und Import-Mapping-Tests ergänzt
+- RB-1, RB-3, RB-4, RB-5 sowie `minimum_staff` bewusst nicht umgesetzt
+
 ## V24.0.6.0 – Sprint 3 Mobile UX / Responsive Fix
 - Mobile Navigation als einklappbaren Drawer mit ausreichend großen Touch-Zielen umgesetzt
 - KPI-Bereich mobil auf ein belastbares 2×2-Grid und Desktop weiterhin auf vier Spalten umgestellt

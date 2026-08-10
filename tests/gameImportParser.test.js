@@ -25,17 +25,33 @@ const HEADERS = [
 const TEAMS = [
   {
     id: 'team-herren-1',
-    name: 'TVH Herren 1',
+    name: 'Herren 1',
     category: 'Aktive',
     import_name: 'Herren 1'
   },
   {
     id: 'team-me',
-    name: 'TVH Männliche Jugend E',
+    name: 'mE',
     category: 'Jugend',
     import_name: 'mE'
   }
 ]
+
+const COMPACT_TEAMS = [
+  ['team-h1', 'Herren 1', 'Aktive', 'Herren 1'],
+  ['team-h2', 'Herren 2', 'Aktive', 'Herren 2'],
+  ['team-md1', 'mD1', 'Jugend', 'mD1'],
+  ['team-md2', 'mD2', 'Jugend', 'mD2'],
+  ['team-me', 'mE', 'Jugend', 'mE'],
+  ['team-wc', 'wC', 'Jugend', 'wC'],
+  ['team-wd', 'wD', 'Jugend', 'wD'],
+  ['team-we', 'wE', 'Jugend', 'wE']
+].map(([id, name, category, importName]) => ({
+  id,
+  name,
+  category,
+  import_name: importName
+}))
 
 function createRow({
   homeAway = 'LOCAL',
@@ -202,5 +218,26 @@ test('wendet ein manuelles Mapping auf alle gleichen Excel-Namen an', () => {
   assert.deepEqual(
     rows.map(row => row.status),
     [IMPORT_STATUS.READY, IMPORT_STATUS.READY]
+  )
+})
+
+test('ordnet alle acht Excel-Mannschaften trotz kompakter Teamnamen über import_name zu', () => {
+  const importNames = COMPACT_TEAMS.map(team => team.import_name)
+  const parsed = parseImportSheet([
+    HEADERS,
+    ...importNames.map((importTeamName, index) => createRow({
+      importTeamName,
+      opponent: `Gastverein ${index + 1}`
+    }))
+  ])
+  const rows = analyzeImportRows(parsed.rows, COMPACT_TEAMS, [])
+
+  assert.deepEqual(
+    rows.map(row => row.matchedTeamId),
+    COMPACT_TEAMS.map(team => team.id)
+  )
+  assert.deepEqual(
+    rows.map(row => row.status),
+    Array(COMPACT_TEAMS.length).fill(IMPORT_STATUS.READY)
   )
 })

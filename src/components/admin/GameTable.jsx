@@ -53,6 +53,9 @@ function getTeams(game) {
 export default function GameTable({
   games = [],
   actionsDisabled = false,
+  selectionDisabled = false,
+  selectedGameIds = new Set(),
+  onSelectionChange,
   onEdit,
   onDelete
 }) {
@@ -66,16 +69,18 @@ export default function GameTable({
       time,
       homeTeam,
       awayTeam,
-      category: game.team?.category || '–'
+      category: game.team?.category || '–',
+      label: `${homeTeam} gegen ${awayTeam} am ${date}`
     }
   })
 
   return (
     <div className="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="hidden max-w-full overflow-x-auto md:block">
-        <table className="w-full border-collapse text-left">
+        <table className="w-full min-w-[960px] border-collapse text-left">
           <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500">
             <tr>
+              <th className="w-16 px-5 py-4">Auswahl</th>
               <th className="px-5 py-4">Datum</th>
               <th className="px-5 py-4">Uhrzeit</th>
               <th className="px-5 py-4">Heimmannschaft</th>
@@ -88,6 +93,19 @@ export default function GameTable({
           <tbody className="divide-y divide-slate-200">
             {rows.map(row => (
               <tr key={row.game.id} className="align-top">
+                <td className="px-5 py-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedGameIds.has(String(row.game.id))}
+                    onChange={event => onSelectionChange?.(
+                      row.game.id,
+                      event.target.checked
+                    )}
+                    disabled={selectionDisabled}
+                    aria-label={`${row.label} auswählen`}
+                    className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:cursor-wait"
+                  />
+                </td>
                 <td className="whitespace-nowrap px-5 py-4 font-bold">
                   {row.date}
                 </td>
@@ -121,8 +139,21 @@ export default function GameTable({
         {rows.map(row => (
           <article key={row.game.id} className="min-w-0 space-y-4 p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="font-black">
-                {row.date}, {row.time} Uhr
+              <div className="flex min-w-0 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedGameIds.has(String(row.game.id))}
+                  onChange={event => onSelectionChange?.(
+                    row.game.id,
+                    event.target.checked
+                  )}
+                  disabled={selectionDisabled}
+                  aria-label={`${row.label} auswählen`}
+                  className="h-6 w-6 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:cursor-wait"
+                />
+                <div className="font-black">
+                  {row.date}, {row.time} Uhr
+                </div>
               </div>
               <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
                 {row.category}
@@ -168,8 +199,7 @@ function GameActions({
   onEdit,
   onDelete
 }) {
-  const gameLabel =
-    `${row.homeTeam} gegen ${row.awayTeam} am ${row.date}`
+  const gameLabel = row.label
 
   return (
     <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">

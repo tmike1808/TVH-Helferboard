@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { buildImportPayload } from './gameImportModel'
+import { executeBulkDelete } from './gameBulkDelete'
 import { normalizeComparisonText } from './gameImportParser'
 
 const GAME_FIELDS = 'id, team_id, start_time, opponent, is_home'
@@ -354,4 +355,19 @@ export async function deleteGame(id) {
   }
 
   return data
+}
+
+export async function deleteGames(
+  ids,
+  {
+    deleteOne = deleteGame,
+    onProgress,
+    refresh
+  } = {}
+) {
+  return executeBulkDelete(ids, {
+    deleteOne,
+    onProgress,
+    refresh
+  })
 }

@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 10. August 2026. Grundlage ist der Commit
-`d4b0555` (`V24.0.5.6 Excel-Import vorbereiten und kontrolliert
-durchführen`) sowie der noch nicht committete Arbeitsstand von Sprint 3.
+`a22d275` (`V24.0.6.0 Sprint 3: Mobile UX und Responsive Layout
+finalisieren`) sowie der noch nicht committete Arbeitsstand von Sprint 4.
 
 ## 1. Projektziel
 
@@ -18,7 +18,9 @@ den bestätigten Import erneut geprüfter Heimspiele, Teilergebnisse,
 Doppelauslösungsschutz und den reload-freien Dashboard-Refresh. In der
 konfigurierten produktionsnahen Instanz sind inzwischen 63 Saisonspiele
 vorhanden. Sprint 3 behebt die relevanten mobilen Overflow-Probleme und zeigt
-Datum sowie Anwurfzeit in den MatchCards lesbar an.
+Datum sowie Anwurfzeit in den MatchCards lesbar an. Sprint 4 ergänzt die
+bestätigte Sammellöschung für Spiele und stellt die sichtbaren Namen der acht
+Vereinsmannschaften auf kompakte Vereinswerte um.
 
 ## 2. Technischer Ist-Zustand
 
@@ -87,6 +89,13 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 ├── reports/
 │   ├── V24.0.5.1-Sprint-1A.1.md
 │   ├── V24.0.5.1-Sprint-1B.md
+│   ├── V24.0.5.3-Sprint-1C.md
+│   ├── V24.0.5.3-Sprint-1C.1.md
+│   ├── V24.0.5.4-Sprint-1D.md
+│   ├── V24.0.5.5-Sprint-2A.md
+│   ├── V24.0.5.6-Sprint-2B.md
+│   ├── V24.0.6.0-Sprint-3-Mobile-UX.md
+│   ├── V24.0.6.1-Sprint-4.md
 │   └── DB-0-Supabase-Grundlage.md
 ├── supabase/
 │   ├── migrations/
@@ -94,7 +103,8 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 │   │   ├── 20260727000200_admin_auth.sql
 │   │   ├── 20260727000300_update_helper_roles.sql
 │   │   ├── 20260727000400_add_team_import_name.sql
-│   │   └── 20260727000500_complete_import_teams.sql
+│   │   ├── 20260727000500_complete_import_teams.sql
+│   │   └── 20260810000100_shorten_team_names.sql
 │   └── seed.sql
 ├── tailwind.config.js
 ├── vite.config.js
@@ -108,6 +118,7 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     │   ├── Sidebar.jsx
     │   ├── Topbar.jsx
     │   └── admin/
+    │       ├── BulkDeleteGamesDialog.jsx
     │       ├── DeleteGameDialog.jsx
     │       ├── GameImportConfirmDialog.jsx
     │       ├── GameImportPreview.jsx
@@ -128,15 +139,22 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     │   ├── gameImportParser.js
     │   ├── gameImportService.js
     │   ├── gameImportWorkflow.js
+    │   ├── gameBulkDelete.js
+    │   ├── gameSelection.js
     │   ├── gameService.js
     │   └── helperService.js
     ├── store/
     │   └── useDashboardStore.js
-    └── styles/
-        └── globals.css
+    ├── styles/
+    │   └── globals.css
+    └── utils/
+        └── formatDateTime.js
 └── tests/
+    ├── formatDateTime.test.js
+    ├── gameBulkDelete.test.js
     ├── gameImportParser.test.js
-    └── gameImportWorkflow.test.js
+    ├── gameImportWorkflow.test.js
+    └── gameSelection.test.js
 ```
 
 `node_modules/`, `dist/`, lokale `.env`-Varianten und Editor-Dateien werden über `.gitignore` ausgeschlossen. `.env.example` ist ausdrücklich von der allgemeinen `.env.*`-Regel ausgenommen und enthält ausschließlich Platzhalter.
@@ -150,7 +168,10 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 - Aktionen: `loadData`, `reloadAssignments`, `setSelectedTeam`, `setSelectedCategory`
 - Selektorlogik: `getFilteredGames`
 
-Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält Spiele, Teams, Lade-, Formular-, Speicher- und Meldungszustände lokal in `AdminGamesPage` und lädt beziehungsweise schreibt ausschließlich über `gameService`.
+Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält
+Spiele, Teams, Lade-, Formular-, Speicher-, Auswahl-, Sammellösch- und
+Meldungszustände lokal in `AdminGamesPage` und lädt beziehungsweise schreibt
+ausschließlich über den Service-Layer.
 
 Die Admin-Importseite hält ausgewählte Datei, Parsergebnis, lokale manuelle
 Zuordnungen, freiwillige Alias-Auswahl, Bestätigungs-, Fortschritts- und
@@ -181,7 +202,10 @@ aktualisiert die offiziellen Rollenwerte. Sprint 2A ergänzt
 `teams.import_name` als optionale, fallunabhängig eindeutige
 Excel-Bezeichnung. Sprint 2B verwendet für Spiele- und optionale
 Team-Mutationen ausschließlich die bereits vorhandenen Admin-Policies;
-bestehende RLS-Regeln bleiben unverändert.
+bestehende RLS-Regeln bleiben unverändert. Sprint 4 kürzt ausschließlich die
+sichtbaren `teams.name`-Werte über eine idempotente Zuordnung anhand von
+`import_name` und Kategorie. IDs, Importnamen, Spiele- und
+Helferzuordnungen bleiben unverändert.
 
 Der Dashboard-Store greift direkt auf Supabase zu. Für Authentifizierung,
 Helferzuordnungen und Spiele existieren klar benannte Services. Die
@@ -221,6 +245,9 @@ bestätigt.
   verständlich.
 - `updateGame(id, g)`: begrenzt den Payload auf dieselben vier Felder, aktualisiert eindeutig anhand der Spiel-ID und gibt den aktualisierten Datensatz zurück.
 - `deleteGame(id)`: löscht eindeutig anhand der Spiel-ID, gibt die gelöschte ID zurück und unterscheidet einen Fremdschlüsselkonflikt von allgemeinen Fehlern.
+- `deleteGames(ids, options)`: delegiert eine validierte Sammellöschung an den
+  sequenziellen Bulk-Workflow und verwendet für jede ID das bestehende
+  `deleteGame`.
 
 Die CRUD-Funktionen werden von `AdminGamesPage` verwendet; `getTeams()` und
 `getGames()` versorgen zusätzlich die Importvorschau, während
@@ -229,6 +256,20 @@ Importablauf bedienen. Technische
 Supabase-Fehler werden nicht direkt in der Oberfläche ausgegeben; die Seite
 übersetzt die strukturierten Fehlercodes in verständliche Meldungen. Für Lese-
 und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
+
+`src/services/gameBulkDelete.js`:
+
+- validiert die vollständige ID-Liste vor der ersten Mutation,
+- entfernt doppelte IDs und verarbeitet ausschließlich die explizite Auswahl,
+- löscht sequenziell und liefert erfolgreiche sowie fehlgeschlagene IDs
+  getrennt zurück,
+- verhindert parallele Sammelläufe über einen Single-Flight-Schutz,
+- stößt den injizierten Refresh nur nach mindestens einem Erfolg an und hält
+  einen Refresh-Fehler getrennt vom Mutationsergebnis fest.
+
+`src/services/gameSelection.js` kapselt Einzelauswahl, Auswahl/Abwahl aller
+aktuell dargestellten Spiele sowie das Entfernen nicht mehr vorhandener IDs
+nach Reload oder Löschung.
 
 `src/services/gameImportService.js`:
 
@@ -277,12 +318,19 @@ und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und Mannschaften für die aktuelle Filterung.
 - `FilterBar`: Team- und Kategoriefilter.
 - `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige sowie Ein- und Austragen von Helfern.
-- `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-, Leer-, Formular-, Speicher-, Lösch- und Meldungszustand; orchestriert Lesen, Anlegen, Bearbeiten und Löschen über `gameService` und aktualisiert danach Adminliste und Dashboard-Store.
+- `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-,
+  Leer-, Formular-, Speicher-, Auswahl-, Einzel-/Sammellösch- und
+  Meldungszustand; aktualisiert nach Mutationen Adminliste und Dashboard-Store.
 - `AdminLoginPage`: kontrolliertes Loginformular mit Pflichtfeldprüfung,
   Ladezustand, Doppelklickschutz und Rückkehr zum Dashboard.
-- `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum, Uhrzeit, Heimteam, Gastteam und Kategorie sowie eindeutig zugeordnete Aktionen zum Bearbeiten und Löschen.
+- `GameTable`: responsive Desktop-Tabelle und mobile Listenansicht für Datum,
+  Uhrzeit, Heimteam, Gastteam und Kategorie, Checkbox je Spiel sowie eindeutig
+  zugeordnete Einzelaktionen zum Bearbeiten und Löschen.
 - `GameForm`: gemeinsames, kontrolliertes Create-/Edit-Formular mit Datum, Uhrzeit, Heim-/Auswärtswahl, TVH-Team-Auswahl, Gegnername, Validierung, Vorbelegung, Ladezustand und Abbrechen.
 - `DeleteGameDialog`: modaler Bestätigungsdialog mit Spielidentifikation, Hinweis auf kaskadierte Helferzuordnungen, Ladezustand, Fehleranzeige, Abbrechen und Escape-Unterstützung.
+- `BulkDeleteGamesDialog`: mobiler, intern scrollbar begrenzter
+  Bestätigungsdialog mit Auswahlanzahl, kompakter Vorschau, Cascade-Hinweis,
+  Fortschritt und eindeutiger destruktiver Aktion.
 - `AdminGameImportPage`: geschützte Dateiauswahl mit Referenzdaten-Laden,
   Rücksetzen, Parserfehlern, lokaler manueller Zuordnung, freiwilliger
   Alias-Speicherung, ausdrücklicher Importbestätigung und Ergebnisanzeige.
@@ -323,6 +371,14 @@ und Schreibzugriff gilt `start_time` als kanonisches Zeitfeld.
 - Löschen erst nach ausdrücklicher Bestätigung über
   `gameService.deleteGame()`; laufende Löschvorgänge können nicht mehrfach
   ausgelöst oder abgebrochen werden.
+- Auswahl einzelner oder aller aktuell dargestellten Spiele über Checkboxen;
+  einzelne Spiele können wieder abgewählt werden.
+- Sammellöschen erst nach ausdrücklicher Bestätigung mit Auswahlanzahl und
+  Hinweis auf die kaskadierte Löschung zugehöriger Helferzuordnungen.
+- Sequenzielle Sammellöschung mit Fortschritt, Doppelauslösungsschutz,
+  eindeutigem Voll-/Teilergebnis und Auswahl der fehlgeschlagenen Spiele.
+- Automatisches Entfernen veralteter Auswahl-IDs nach Löschung, Reload oder
+  erneutem Öffnen der Seite.
 - Neuladen und sortierte Darstellung der Adminliste nach erfolgreichem
   Anlegen, Bearbeiten oder Löschen.
 - Unmittelbares Neuladen aller Dashboard-Daten nach jeder erfolgreichen
@@ -428,8 +484,10 @@ Teamreihenfolge bleibt die alphabetische Sortierung aus `gameService`.
 | `created_at`, `updated_at` | Derzeit nicht vom Frontend gelesen | `timestamptz not null`, Default `now()`; Update-Trigger |
 
 `createGame` und `updateGame` schreiben ausschließlich die vier belegten
-Felder. `deleteGame` filtert ausschließlich über `id`. Daraus lassen sich
-keine weiteren verlässlichen Spalten ableiten.
+Felder. `deleteGame` filtert ausschließlich über eine validierte `id`;
+`deleteGames` ruft diesen Ablauf sequenziell nur für die zuvor validierten,
+explizit ausgewählten IDs auf. Daraus lassen sich keine weiteren
+verlässlichen Spalten ableiten.
 
 ### `helper_roles`
 
@@ -540,11 +598,13 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 ### RB-2 – Mehrfachauswahl beim Löschen von Spielen
 
-- Checkbox je Spiel.
-- Mehrere Spiele gemeinsam löschen.
-- Sicherheitsdialog mit Anzahl der Spiele.
-- Zugehörige Helferzuordnungen berücksichtigen.
-- Schutz gegen versehentliche Mehrfachauslösung.
+- In Sprint 4 umgesetzt.
+- Checkbox je Spiel sowie Auswahl/Abwahl aller aktuell dargestellten Spiele.
+- Sicherheitsdialog mit Anzahl, begrenzter Vorschau und Cascade-Hinweis.
+- Sequenzielle Löschung ausschließlich expliziter IDs mit nachvollziehbaren
+  Voll- und Teilergebnissen.
+- Schutz gegen Doppelklick und parallele Mehrfachauslösung.
+- Adminliste und Dashboard werden ohne Browserreload aktualisiert.
 
 ### RB-3 – Intelligente Spieltagsgruppierung
 
@@ -592,6 +652,13 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 - Die gefilterte Dashboard-Liste wird auf einer Kopie chronologisch nach
   `start_time` sortiert.
 - Remote-Datensätze werden weder aktualisiert noch umsortiert gespeichert.
+
+### Weiterer Release-Backlog
+
+- Helferrollenfilter und Filter auf Spiele mit offenen ausgewählten Rollen.
+- `minimum_staff` und fachlicher Durchführbarkeitsstatus, insbesondere die
+  spätere 3-von-4-Regel für Verkauf und Ordner. Diese Logik ist ausdrücklich
+  nicht Teil von Sprint 4.
 
 ## 7. Entwicklungsregeln
 
@@ -645,4 +712,7 @@ geprüft dokumentiert.
 - **V24.0.6.0:** Sprint 3 behebt Mobile-Overflow, führt den responsiven Drawer,
   mobile KPI-/Filter-/Rollenlayouts, Anwurfzeiten und die chronologische
   Dashboard-Sortierung ein.
+- **V24.0.6.1:** Sprint 4 ergänzt RB-2 Sammellöschen und die kompakten
+  sichtbaren Namen der acht Vereinsmannschaften bei unveränderten Team-IDs und
+  Importnamen.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

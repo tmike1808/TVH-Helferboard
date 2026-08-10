@@ -12,7 +12,7 @@ import {
 
 const TEAM = {
   id: 'team-1',
-  name: 'TVH Herren 1',
+  name: 'Herren 1',
   category: 'Aktive',
   import_name: 'Herren 1'
 }

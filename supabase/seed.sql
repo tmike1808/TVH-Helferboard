@@ -6,14 +6,14 @@ begin;
 -- VEREINSMANNSCHAFTEN MIT EINDEUTIGEN EXCEL-IMPORTNAMEN.
 insert into public.teams (name, category, import_name)
 values
-  ('TVH Herren 1', 'Aktive', 'Herren 1'),
-  ('TVH Herren 2', 'Aktive', 'Herren 2'),
-  ('TVH Männliche Jugend D 1', 'Jugend', 'mD1'),
-  ('TVH Männliche Jugend D 2', 'Jugend', 'mD2'),
-  ('TVH Männliche Jugend E', 'Jugend', 'mE'),
-  ('TVH Weibliche Jugend C', 'Jugend', 'wC'),
-  ('TVH Weibliche Jugend D', 'Jugend', 'wD'),
-  ('TVH Weibliche Jugend E', 'Jugend', 'wE')
+  ('Herren 1', 'Aktive', 'Herren 1'),
+  ('Herren 2', 'Aktive', 'Herren 2'),
+  ('mD1', 'Jugend', 'mD1'),
+  ('mD2', 'Jugend', 'mD2'),
+  ('mE', 'Jugend', 'mE'),
+  ('wC', 'Jugend', 'wC'),
+  ('wD', 'Jugend', 'wD'),
+  ('wE', 'Jugend', 'wE')
 on conflict (name, category)
 do update set
   import_name = excluded.import_name,

@@ -9,6 +9,7 @@ Die versionierte Grundlage besteht aus:
 - `supabase/migrations/20260727000300_update_helper_roles.sql`
 - `supabase/migrations/20260727000400_add_team_import_name.sql`
 - `supabase/migrations/20260727000500_complete_import_teams.sql`
+- `supabase/migrations/20260810000100_shorten_team_names.sql`
 - `supabase/seed.sql`
 
 Die erste Migration ist die einmalig auszuführende Basismigration. Die
@@ -52,11 +53,12 @@ Sprint 2A ergänzt die Migration:
 - `supabase/migrations/20260727000400_add_team_import_name.sql`
 - `supabase/migrations/20260727000500_complete_import_teams.sql`
 
-Sie erweitert `public.teams` um das optionale Feld `import_name`. Ein
+Die ersten beiden Migrationen erweitern `public.teams` um das optionale Feld
+`import_name` und vervollständigen die acht Vereinsmannschaften. Ein
 partieller Unique-Index auf `lower(import_name)` stellt sicher, dass nicht
 leere Importnamen unabhängig von Groß-/Kleinschreibung eindeutig sind;
-mehrere `NULL`-Werte bleiben erlaubt. Bestehende Teamnamen, Primärschlüssel,
-RLS-Regeln und Policies werden nicht verändert.
+mehrere `NULL`-Werte bleiben erlaubt. Primärschlüssel, RLS-Regeln und Policies
+werden nicht verändert.
 
 Die erste Migration setzt für die vier vorhandenen Teams die anhand der
 Teamliste und der Beispieldatei eindeutig belegten Zuordnungen. Die zweite
@@ -65,14 +67,21 @@ wiederholt die bestehenden Importnamen robust ohne hart codierte IDs:
 
 | Excel-Mannschaft | Supabase-Team |
 | --- | --- |
-| `Herren 1` | `TVH Herren 1` |
-| `Herren 2` | `TVH Herren 2` |
-| `mD1` | `TVH Männliche Jugend D 1` |
-| `mD2` | `TVH Männliche Jugend D 2` |
-| `mE` | `TVH Männliche Jugend E` |
-| `wC` | `TVH Weibliche Jugend C` |
-| `wD` | `TVH Weibliche Jugend D` |
-| `wE` | `TVH Weibliche Jugend E` |
+| `Herren 1` | `Herren 1` |
+| `Herren 2` | `Herren 2` |
+| `mD1` | `mD1` |
+| `mD2` | `mD2` |
+| `mE` | `mE` |
+| `wC` | `wC` |
+| `wD` | `wD` |
+| `wE` | `wE` |
+
+Sprint 4 ergänzt anschließend
+`supabase/migrations/20260810000100_shorten_team_names.sql`. Diese
+idempotente Datenmigration ordnet die acht Teams robust über das eindeutige
+`import_name` und die Kategorie zu und ändert ausschließlich ihren sichtbaren
+`name`. Team-IDs, `import_name`, Spielezuordnungen, Helferzuordnungen, Schema,
+RLS und Policies bleiben unverändert.
 
 `teams.order_index` existiert weder in der Basismigration noch in der
 aktuellen Instanz. Deshalb wird in Sprint 2A kein solches Feld ergänzt oder

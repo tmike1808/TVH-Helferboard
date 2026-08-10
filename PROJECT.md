@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 10. August 2026. Grundlage ist der Commit
-`a22d275` (`V24.0.6.0 Sprint 3: Mobile UX und Responsive Layout
-finalisieren`) sowie der noch nicht committete Arbeitsstand von Sprint 4.
+`89cf0bd` (`V24.0.6.1 Sprint 4: Sammellöschen und kompakte Teamnamen`)
+sowie der noch nicht committete Arbeitsstand von Sprint 5.
 
 ## 1. Projektziel
 
@@ -21,6 +21,9 @@ vorhanden. Sprint 3 behebt die relevanten mobilen Overflow-Probleme und zeigt
 Datum sowie Anwurfzeit in den MatchCards lesbar an. Sprint 4 ergänzt die
 bestätigte Sammellöschung für Spiele und stellt die sichtbaren Namen der acht
 Vereinsmannschaften auf kompakte Vereinswerte um.
+Sprint 5 ergänzt die hierarchischen Dashboard-Filter mit Kategorie-
+Einfachauswahl, Team- und Rollen-Multiselect sowie einem optionalen Filter auf
+offene ausgewählte Rollen.
 
 ## 2. Technischer Ist-Zustand
 
@@ -96,6 +99,7 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 │   ├── V24.0.5.6-Sprint-2B.md
 │   ├── V24.0.6.0-Sprint-3-Mobile-UX.md
 │   ├── V24.0.6.1-Sprint-4.md
+│   ├── V24.0.6.2-Sprint-5.md
 │   └── DB-0-Supabase-Grundlage.md
 ├── supabase/
 │   ├── migrations/
@@ -115,6 +119,7 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     │   ├── FilterBar.jsx
     │   ├── KPISection.jsx
     │   ├── MatchCard.jsx
+    │   ├── MultiSelectFilter.jsx
     │   ├── Sidebar.jsx
     │   ├── Topbar.jsx
     │   └── admin/
@@ -148,8 +153,10 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
     ├── styles/
     │   └── globals.css
     └── utils/
+        ├── dashboardFilters.js
         └── formatDateTime.js
 └── tests/
+    ├── dashboardFilters.test.js
     ├── formatDateTime.test.js
     ├── gameBulkDelete.test.js
     ├── gameImportParser.test.js
@@ -164,9 +171,11 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 `src/store/useDashboardStore.js` verwendet einen einzelnen Zustand-Store. Er enthält:
 
 - Daten: `games`, `teams`, `roles`, `assignments`
-- Filter: `selectedTeam`, `selectedCategory`
-- Aktionen: `loadData`, `reloadAssignments`, `setSelectedTeam`, `setSelectedCategory`
-- Selektorlogik: `getFilteredGames`
+- Filter: `selectedCategory`, `selectedTeamIds`, `selectedRoleNames` und
+  `openSelectedRolesOnly`
+- Aktionen: Laden/Neuladen, Kategorie setzen, Team- und Rollenauswahl
+  umschalten/leeren, Offenfilter setzen und zentraler Filterreset
+- Selektorlogik: dynamische Team-/Rollenoptionen und `getFilteredGames`
 
 Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält
 Spiele, Teams, Lade-, Formular-, Speicher-, Auswahl-, Sammellösch- und
@@ -188,7 +197,12 @@ dafür ausschließlich `authService`.
 
 `loadData` liest alle vier Tabellen direkt über den Supabase-Client und speichert die Ergebnisse im Store. Die Abfragen laufen nacheinander. Ladezustände und sichtbare Fehlerzustände werden nicht verwaltet. Erfolgreiche `data: null`-Antworten werden auf leere Arrays normalisiert. Bei Supabase-Fehlern bleiben die zuletzt gültigen Store-Daten erhalten und technische Details werden protokolliert; eine sichtbare Dashboard-Fehlermeldung gibt es weiterhin nicht. Unerwartete Promise-Fehler aus `loadData()` werden in `App` abgefangen.
 
-Die Spielfilterung ordnet Spiele über `games.team_id = teams.id` einem Team zu. Der Teamfilter vergleicht die ausgewählte Select-Zeichenkette mit `team.id`; falls die Datenbank numerische IDs liefert, kann der strikte Vergleich fehlschlagen. Der Kategoriefilter vergleicht `team.category` mit `Aktive` oder `Jugend`.
+Die Spielfilterung ist in `src/utils/dashboardFilters.js` testbar gekapselt.
+Zwischen Kategorie, Mannschaft, Rolle und optionalem Offenstatus gilt AND;
+innerhalb der Team- und Rollenauswahl gilt OR. Kategorieänderungen bereinigen
+ungültige nachgelagerte Auswahlwerte. Gleichnamige Rollen werden über ihren
+normalisierten Namen einmal angeboten und pro Spielkategorie auf die korrekte
+`helper_roles.id` aufgelöst. `loadData` erhält gültige Filterzustände.
 
 ### Supabase-Anbindung
 
@@ -215,6 +229,18 @@ Sprint-1C-Migration erteilt authentifizierten Clients die nötigen
 Tabellenrechte, lässt Mutationen auf `teams`, `games` und `helper_roles` über
 RLS jedoch nur zu, wenn `public.is_admin()` einen Eintrag in `admin_users`
 bestätigt.
+
+Die nachgelagerte Sprint-5-Blockerprüfung bestätigte remote für `anon` und
+`authenticated` identische Leserechte und Sichtmengen. Beide Rollen besitzen
+SELECT auf allen vier öffentlich gelesenen Tabellen; deren SELECT-Policies
+umfassen jeweils beide Rollen mit `USING (true)`. Damit entspricht der
+Remote-Berechtigungsstand der Basismigration, und eine zusätzliche
+Berechtigungsmigration ist nicht erforderlich. Die synchronisierte Prüfung
+ergab 0 statt der zuvor im Testbetrieb vorhandenen 10 `helper_assignments`.
+Warum diese Testzuordnungen nicht mehr vorhanden sind, ist ohne Audit-Historie
+rückwirkend nicht belastbar bestimmbar. Der aktuelle Stand mit 0
+Helferzuordnungen ist für den weiteren Testbetrieb fachlich akzeptiert; echte
+Saison-Helferdaten müssen nicht wiederhergestellt werden.
 
 ### Services
 
@@ -315,8 +341,13 @@ nach Reload oder Löschung.
   „Spielimport“ mit sichtbarem Aktivzustand; die Admin-Einträge führen ohne
   Freigabe zum Login, freigeschaltete Admins erhalten „Abmelden“.
 - `Topbar`: konfigurierbare Überschrift und Untertitel mit den bisherigen Dashboard-Texten als Standard.
-- `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und Mannschaften für die aktuelle Filterung.
-- `FilterBar`: Team- und Kategoriefilter.
+- `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und
+  Mannschaften auf Basis desselben gefilterten Spielbestands wie die Liste.
+- `FilterBar`: feste Hierarchie aus Kategorie-Einfachauswahl, Team- und
+  Rollen-Multiselect, optionalem Offenfilter und zentralem Reset.
+- `MultiSelectFilter`: kleine kontrollierte Checkbox-Popover-Komponente mit
+  Auswahlzusammenfassung, Leeren, Klick-außerhalb-/Escape-Schließen,
+  Tastaturbedienung und sichtbaren Fokuszuständen.
 - `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige sowie Ein- und Austragen von Helfern.
 - `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-,
   Leer-, Formular-, Speicher-, Auswahl-, Einzel-/Sammellösch- und
@@ -346,7 +377,18 @@ nach Reload oder Löschung.
 
 - Laden von Spielen, Teams, Helferrollen und Helferzuordnungen aus Supabase.
 - Anzeige und Aufklappen von MatchCards.
-- Teamfilter und Kategoriefilter.
+- Kategorie-Einfachfilter `Alle | Aktive | Jugend` als stärkster Filter.
+- Mehrfachauswahl von Mannschaften mit OR-Verknüpfung und kaskadierenden,
+  aus `teams.category` abgeleiteten Optionen.
+- Mehrfachauswahl eindeutiger Helferrollennamen mit OR-Verknüpfung und
+  kaskadierenden, aus `helper_roles.category` abgeleiteten Optionen.
+- Automatische Bereinigung ungültiger Team- und Rollenauswahlen bei
+  Kategorieänderungen sowie zentraler Filterreset.
+- Optionaler Filter auf Spiele, bei denen mindestens eine ausgewählte und zur
+  Spielkategorie passende Rolle `assignmentCount < slots` erfüllt.
+- Rollenauflösung je Spielkategorie, sodass gleichnamige Aktive- und
+  Jugendrollen niemals über die falsche Rollen-ID gezählt werden.
+- Verständlicher Leerzustand für gültige Filterkombinationen ohne Treffer.
 - KPI-Anzeige auf Basis der aktuell gefilterten Spiele.
 - Dynamisches Laden der Rollen passend zur Teamkategorie.
 - Sortierung der Rollen nach `order_index`.
@@ -382,7 +424,8 @@ nach Reload oder Löschung.
 - Neuladen und sortierte Darstellung der Adminliste nach erfolgreichem
   Anlegen, Bearbeiten oder Löschen.
 - Unmittelbares Neuladen aller Dashboard-Daten nach jeder erfolgreichen
-  Spielmutation; Team- und Kategoriefilter bleiben dabei erhalten.
+  Spielmutation; gültige Kategorie-, Team-, Rollen- und Offenfilter bleiben
+  dabei erhalten.
 - Laden und Wiederherstellen einer bestehenden Supabase-Session.
 - Reaktion auf Änderungen des Supabase-Authstatus.
 - Login mit E-Mail und Passwort ohne öffentliche Registrierung.
@@ -571,9 +614,9 @@ Die Liste beschreibt den eingefrorenen Zielumfang. Im Ist-Zustand sind
 Dashboard, KPIs, Filter, MatchCards, dynamische Rollen, Helferaktionen sowie
 Anzeigen, Anlegen, Bearbeiten und Löschen in der Admin-Spieleübersicht
 implementiert. Excel-Analyse, Team-Mapping, Vorschau und kontrollierter
-Spieleimport sind in Sprint 2A und Sprint 2B umgesetzt. Der produktive Import
-der vollständigen Beispieldatei und das öffentliche Deployment sind noch
-nicht freigegeben beziehungsweise fertiggestellt.
+Spieleimport sind in Sprint 2A und Sprint 2B umgesetzt. Die 63 Saisonspiele
+sind produktiv importiert; die öffentliche Cloudflare-Version wurde nach
+Sprint 4 zusätzlich auf echter Smartphone-Hardware geprüft.
 
 ## 6. Nicht Teil des aktuellen MVP
 
@@ -592,9 +635,14 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 ### RB-1 – Mehrfachauswahl bei Filtern
 
-- Mehrere Teams gleichzeitig auswählbar.
-- Mehrere Kategorien gleichzeitig auswählbar.
-- Dashboard, MatchCards und KPIs berücksichtigen die gewählte Kombination.
+- In Sprint 5 umgesetzt.
+- Kategorie bleibt bewusst eine Einfachauswahl `Alle | Aktive | Jugend`.
+- Mehrere Mannschaften und mehrere fachlich eindeutige Helferrollen sind
+  auswählbar; innerhalb der Auswahl gilt OR, zwischen den Gruppen AND.
+- Kategorie steuert die gültigen Team- und Rollenoptionen und bereinigt
+  ungültige nachgelagerte Auswahlen.
+- Optionaler Filter auf offene ausgewählte Rollen ist umgesetzt.
+- Dashboard, MatchCards und KPIs berücksichtigen dieselbe Kombination.
 
 ### RB-2 – Mehrfachauswahl beim Löschen von Spielen
 
@@ -655,10 +703,12 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 ### Weiterer Release-Backlog
 
-- Helferrollenfilter und Filter auf Spiele mit offenen ausgewählten Rollen.
-- `minimum_staff` und fachlicher Durchführbarkeitsstatus, insbesondere die
-  spätere 3-von-4-Regel für Verkauf und Ordner. Diese Logik ist ausdrücklich
-  nicht Teil von Sprint 4.
+- `minimum_staff` und fachlicher Durchführbarkeitsstatus: Für Aktive/Verkauf
+  und Aktive/Ordner bleiben jeweils `slots = 4`; später soll jeweils
+  `minimum_staff = 3` gelten und eine Belegung von 3/4 als durchführbar/grün
+  dargestellt werden. Die KPI „Offene Dienste“ zählt weiterhin tatsächlich
+  freie Plätze, sodass 3/4 dort weiterhin einen offenen Platz bedeutet. Diese
+  Logik ist ausdrücklich nicht Teil von Sprint 5.
 
 ## 7. Entwicklungsregeln
 
@@ -715,4 +765,6 @@ geprüft dokumentiert.
 - **V24.0.6.1:** Sprint 4 ergänzt RB-2 Sammellöschen und die kompakten
   sichtbaren Namen der acht Vereinsmannschaften bei unveränderten Team-IDs und
   Importnamen.
+- **V24.0.6.2:** Sprint 5 schließt RB-1 mit hierarchischer Kategorie,
+  Team-Multiselect, Rollen-Multiselect und optionalem Offenfilter ab.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

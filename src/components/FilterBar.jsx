@@ -1,62 +1,109 @@
-
+import MultiSelectFilter from './MultiSelectFilter'
 import { useDashboardStore } from '../store/useDashboardStore'
 
 export default function FilterBar() {
-
   const {
-    teams,
-    selectedTeam,
     selectedCategory,
-    setSelectedTeam,
-    setSelectedCategory
+    selectedTeamIds,
+    selectedRoleNames,
+    openSelectedRolesOnly,
+    setSelectedCategory,
+    toggleSelectedTeam,
+    clearSelectedTeams,
+    toggleSelectedRole,
+    clearSelectedRoles,
+    setOpenSelectedRolesOnly,
+    resetFilters,
+    getAvailableTeams,
+    getAvailableRoleOptions
   } = useDashboardStore()
 
+  const teamOptions = getAvailableTeams().map(team => ({
+    value: team.id,
+    label: team.name
+  }))
+  const roleOptions = getAvailableRoleOptions()
+  const openFilterDisabled = selectedRoleNames.length === 0
+
   return (
-    <div className="mb-6 flex min-w-0 flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:gap-4 sm:p-5">
-
-      <select
-        value={selectedTeam}
-        onChange={(e) => setSelectedTeam(e.target.value)}
-        aria-label="Mannschaft filtern"
-        className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 sm:flex-1"
-      >
-
-        <option value="all">
-          Alle Mannschaften
-        </option>
-
-        {teams.map(team => (
-          <option
-            key={team.id}
-            value={team.id}
+    <section
+      aria-label="Dashboard-Filter"
+      className="mb-6 min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+    >
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <label className="min-w-0">
+          <span className="mb-2 block text-sm font-bold text-slate-700">
+            Kategorie
+          </span>
+          <select
+            value={selectedCategory}
+            onChange={event => setSelectedCategory(event.target.value)}
+            aria-label="Kategorie filtern"
+            className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
-            {team.name}
-          </option>
-        ))}
+            <option value="all">Alle</option>
+            <option value="Aktive">Aktive</option>
+            <option value="Jugend">Jugend</option>
+          </select>
+        </label>
 
-      </select>
+        <MultiSelectFilter
+          label="Mannschaften"
+          options={teamOptions}
+          selectedValues={selectedTeamIds}
+          allLabel="Alle Mannschaften"
+          selectedPluralLabel="Mannschaften"
+          onChange={toggleSelectedTeam}
+          onClear={clearSelectedTeams}
+        />
 
-      <select
-        value={selectedCategory}
-        onChange={(e) => setSelectedCategory(e.target.value)}
-        aria-label="Kategorie filtern"
-        className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 sm:flex-1"
-      >
+        <MultiSelectFilter
+          label="Helferrollen"
+          options={roleOptions}
+          selectedValues={selectedRoleNames}
+          allLabel="Alle Helferrollen"
+          selectedPluralLabel="Rollen"
+          onChange={toggleSelectedRole}
+          onClear={clearSelectedRoles}
+        />
 
-        <option value="all">
-          Alle Kategorien
-        </option>
+        <div className="min-w-0">
+          <div className="mb-2 text-sm font-bold text-slate-700">
+            Offene Rollen
+          </div>
+          <label
+            className={`flex min-h-12 items-center gap-3 rounded-2xl border px-4 py-2 ${
+              openFilterDisabled
+                ? 'cursor-not-allowed border-slate-100 bg-slate-100 text-slate-400'
+                : 'cursor-pointer border-slate-200 bg-slate-50 text-slate-800'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={!openFilterDisabled && openSelectedRolesOnly}
+              onChange={event => setOpenSelectedRolesOnly(event.target.checked)}
+              disabled={openFilterDisabled}
+              className="h-5 w-5 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:cursor-not-allowed"
+            />
+            <span className="min-w-0 break-words text-sm font-bold leading-5">
+              Nur Spiele mit offenen ausgewählten Rollen
+            </span>
+          </label>
+          {openFilterDisabled && (
+            <p className="mt-2 text-xs text-slate-500">
+              Zuerst mindestens eine Helferrolle auswählen.
+            </p>
+          )}
+        </div>
 
-        <option value="Aktive">
-          Aktive
-        </option>
-
-        <option value="Jugend">
-          Jugend
-        </option>
-
-      </select>
-
-    </div>
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="min-h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 sm:col-span-2 xl:col-span-4"
+        >
+          Filter zurücksetzen
+        </button>
+      </div>
+    </section>
   )
 }

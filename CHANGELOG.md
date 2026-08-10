@@ -1,5 +1,17 @@
 # Changelog
 
+## V24.0.6.2 – Sprint 5 Hierarchische Dashboard-Filter
+- Kategorie als stärksten Einfachfilter mit den Zuständen Alle, Aktive und Jugend beibehalten
+- Mannschafts- und Helferrollenfilter als zugängliche Mehrfachauswahl ohne neue UI-Abhängigkeit umgesetzt
+- Team- und Rollenoptionen dynamisch aus Kategorie, Teams und `helper_roles` abgeleitet
+- Ungültige nachgelagerte Team- und Rollenauswahlen bei Kategorieänderungen automatisch bereinigt
+- Gleichnamige Rollen kategorieübergreifend einmal angezeigt und je Spielkategorie auf die korrekte Rollen-ID aufgelöst
+- Optionalen Filter für Spiele mit mindestens einer offenen ausgewählten Rolle ergänzt; `assignmentCount < slots` bleibt die einzige Offenregel
+- Dashboardliste und KPIs konsistent auf denselben gefilterten Spielbestand umgestellt
+- Zentralen Filterreset, verständlichen Leerzustand und responsive Multiselect-Popover ergänzt
+- 33 automatisierte Filter-, Rollenauflösungs-, Offenstatus-, Reset- und KPI-Tests ergänzt
+- Keine Datenbank-, RLS-, Admin-CRUD- oder Importänderungen vorgenommen
+
 ## V24.0.6.1 – Sprint 4 RB-2 und kompakte Teamnamen
 - Admin-Spieleverwaltung um Checkboxen, Auswahlzähler sowie „Alle auswählen/abwählen“ ergänzt
 - Bestätigte Sammellöschung mit begrenzter Spielvorschau, Cascade-Hinweis und mobiler Dialogdarstellung umgesetzt

@@ -1,40 +1,50 @@
-
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import {
+  ALL_CATEGORIES,
+  filterDashboardGames,
+  getAvailableRoleOptions,
+  getAvailableTeams,
+  normalizeRoleName,
+  reconcileDashboardFilters,
+  resetDashboardFilters
+} from '../utils/dashboardFilters'
 
 export const useDashboardStore = create((set, get) => ({
-
   games: [],
   teams: [],
   roles: [],
   assignments: [],
 
-  selectedTeam: 'all',
-  selectedCategory: 'all',
+  ...resetDashboardFilters(),
 
   loadData: async () => {
-
     const { data: games, error: gamesError } =
       await supabase.from('games').select('*')
-
     const { data: teams, error: teamsError } =
       await supabase.from('teams').select('*')
-
     const { data: roles, error: rolesError } =
       await supabase.from('helper_roles').select('*')
-
     const { data: assignments, error: assignmentsError } =
       await supabase.from('helper_assignments').select('*')
 
     const currentState = get()
+    const nextTeams = teamsError ? currentState.teams : teams ?? []
+    const nextRoles = rolesError ? currentState.roles : roles ?? []
+    const reconciledFilters = reconcileDashboardFilters(
+      currentState,
+      nextTeams,
+      nextRoles
+    )
 
     set({
       games: gamesError ? currentState.games : games ?? [],
-      teams: teamsError ? currentState.teams : teams ?? [],
-      roles: rolesError ? currentState.roles : roles ?? [],
+      teams: nextTeams,
+      roles: nextRoles,
       assignments: assignmentsError
         ? currentState.assignments
-        : assignments ?? []
+        : assignments ?? [],
+      ...reconciledFilters
     })
 
     const errors = [
@@ -53,7 +63,6 @@ export const useDashboardStore = create((set, get) => ({
   },
 
   reloadAssignments: async () => {
-
     const { data: assignments, error } =
       await supabase.from('helper_assignments').select('*')
 
@@ -65,45 +74,78 @@ export const useDashboardStore = create((set, get) => ({
     set({ assignments: assignments ?? [] })
   },
 
-  setSelectedTeam: (team) =>
-    set({ selectedTeam: team }),
+  setSelectedCategory: category => set(state => {
+    const selectedCategory = ['Aktive', 'Jugend'].includes(category)
+      ? category
+      : ALL_CATEGORIES
 
-  setSelectedCategory: (category) =>
-    set({ selectedCategory: category }),
+    return reconcileDashboardFilters(
+      { ...state, selectedCategory },
+      state.teams,
+      state.roles
+    )
+  }),
 
-  getFilteredGames: () => {
+  toggleSelectedTeam: (teamId, selected) => set(state => {
+    const nextIds = new Set(state.selectedTeamIds)
 
-    const {
-      games,
-      teams,
-      selectedTeam,
-      selectedCategory
-    } = get()
+    if (selected) {
+      nextIds.add(String(teamId))
+    } else {
+      nextIds.delete(String(teamId))
+    }
 
-    return games.filter(game => {
+    return reconcileDashboardFilters(
+      { ...state, selectedTeamIds: [...nextIds] },
+      state.teams,
+      state.roles
+    )
+  }),
 
-      const team = teams.find(
-        t => t.id === game.team_id
-      )
+  clearSelectedTeams: () => set({ selectedTeamIds: [] }),
 
-      const teamMatch =
-        selectedTeam === 'all'
-        || team?.id === selectedTeam
+  toggleSelectedRole: (roleName, selected) => set(state => {
+    const nextNames = new Set(state.selectedRoleNames)
+    const normalizedName = normalizeRoleName(roleName)
 
-      const categoryMatch =
-        selectedCategory === 'all'
-        || team?.category === selectedCategory
+    if (selected && normalizedName) {
+      nextNames.add(normalizedName)
+    } else {
+      nextNames.delete(normalizedName)
+    }
 
-      return teamMatch && categoryMatch
-    }).sort((firstGame, secondGame) => {
-      const firstStart = new Date(firstGame.start_time).getTime()
-      const secondStart = new Date(secondGame.start_time).getTime()
+    const selectedRoleNames = [...nextNames]
 
-      if (Number.isNaN(firstStart) && Number.isNaN(secondStart)) return 0
-      if (Number.isNaN(firstStart)) return 1
-      if (Number.isNaN(secondStart)) return -1
-      return firstStart - secondStart
-    })
-  }
+    return {
+      selectedRoleNames,
+      openSelectedRolesOnly:
+        selectedRoleNames.length > 0
+        && state.openSelectedRolesOnly
+    }
+  }),
 
+  clearSelectedRoles: () => set({
+    selectedRoleNames: [],
+    openSelectedRolesOnly: false
+  }),
+
+  setOpenSelectedRolesOnly: enabled => set(state => ({
+    openSelectedRolesOnly:
+      state.selectedRoleNames.length > 0
+      && Boolean(enabled)
+  })),
+
+  resetFilters: () => set(resetDashboardFilters()),
+
+  getAvailableTeams: () => {
+    const { teams, selectedCategory } = get()
+    return getAvailableTeams(teams, selectedCategory)
+  },
+
+  getAvailableRoleOptions: () => {
+    const { roles, selectedCategory } = get()
+    return getAvailableRoleOptions(roles, selectedCategory)
+  },
+
+  getFilteredGames: () => filterDashboardGames(get())
 }))

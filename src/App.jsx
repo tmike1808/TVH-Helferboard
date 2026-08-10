@@ -107,14 +107,21 @@ export default function App() {
             <FilterBar />
 
             <div className="space-y-5">
-
-              {filteredGames.map(game => (
-                <MatchCard
-                  key={game.id}
-                  game={game}
-                />
-              ))}
-
+              {filteredGames.length > 0 ? (
+                filteredGames.map(game => (
+                  <MatchCard
+                    key={game.id}
+                    game={game}
+                  />
+                ))
+              ) : (
+                <div
+                  className="rounded-3xl border border-slate-200 bg-white p-8 text-center font-bold text-slate-600 shadow-sm"
+                  role="status"
+                >
+                  Keine Spiele entsprechen den ausgewählten Filtern.
+                </div>
+              )}
             </div>
           </>
         )}

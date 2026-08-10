@@ -382,6 +382,9 @@ nach Reload oder Löschung.
   aus `teams.category` abgeleiteten Optionen.
 - Mehrfachauswahl eindeutiger Helferrollennamen mit OR-Verknüpfung und
   kaskadierenden, aus `helper_roles.category` abgeleiteten Optionen.
+- Fachliche Sortierung der Rollenfilteroptionen abhängig von `Alle`, `Aktive`
+  oder `Jugend`; unbekannte Rollen bleiben sichtbar und folgen alphabetisch
+  hinter den bekannten Rollen.
 - Automatische Bereinigung ungültiger Team- und Rollenauswahlen bei
   Kategorieänderungen sowie zentraler Filterreset.
 - Optionaler Filter auf Spiele, bei denen mindestens eine ausgewählte und zur
@@ -391,7 +394,7 @@ nach Reload oder Löschung.
 - Verständlicher Leerzustand für gültige Filterkombinationen ohne Treffer.
 - KPI-Anzeige auf Basis der aktuell gefilterten Spiele.
 - Dynamisches Laden der Rollen passend zur Teamkategorie.
-- Sortierung der Rollen nach `order_index`.
+- Sortierung der Rollen in MatchCards nach `order_index`.
 - Berechnung der benötigten Plätze aus der Summe von `helper_roles.slots`.
 - Berechnung der KPI „Offene Dienste“ aus den dynamischen Rollenplätzen je
   Spielkategorie abzüglich vorhandener Helferzuordnungen.
@@ -767,4 +770,7 @@ geprüft dokumentiert.
   Importnamen.
 - **V24.0.6.2:** Sprint 5 schließt RB-1 mit hierarchischer Kategorie,
   Team-Multiselect, Rollen-Multiselect und optionalem Offenfilter ab.
+- **V24.0.6.3:** aktualisiert Dashboard-Header, App-Branding und TVH-Logo.
+- **V24.0.6.4:** sortiert die dynamisch geladenen Helferrollen im
+  Dashboardfilter fachlich je Kategorie mit alphabetischem Fallback.
 - **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.

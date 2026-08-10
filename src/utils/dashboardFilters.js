@@ -1,5 +1,35 @@
 export const ALL_CATEGORIES = 'all'
 
+const ROLE_PRIORITY_BY_CATEGORY = Object.freeze({
+  Aktive: Object.freeze([
+    'zeitnehmer',
+    'sekretär',
+    'wischer',
+    'ordner',
+    'verkauf'
+  ]),
+  Jugend: Object.freeze([
+    'zeitnehmer',
+    'sekretär',
+    'schiri',
+    'verkauf',
+    'kuchen',
+    'brezeln / sonstiges',
+    'trikots'
+  ]),
+  [ALL_CATEGORIES]: Object.freeze([
+    'zeitnehmer',
+    'sekretär',
+    'schiri',
+    'wischer',
+    'ordner',
+    'verkauf',
+    'kuchen',
+    'brezeln / sonstiges',
+    'trikots'
+  ])
+})
+
 export const INITIAL_DASHBOARD_FILTERS = Object.freeze({
   selectedCategory: ALL_CATEGORIES,
   selectedTeamIds: [],
@@ -61,10 +91,7 @@ export function getAvailableRoleOptions(roles, selectedCategory) {
   }
 
   return [...optionsByName.values()].sort((first, second) => (
-    first.label.localeCompare(second.label, 'de-DE', {
-      numeric: true,
-      sensitivity: 'base'
-    })
+    compareRoleOptions(first, second, selectedCategory)
   ))
 }
 
@@ -291,4 +318,25 @@ function compareGamesByStartTime(firstGame, secondGame) {
   if (Number.isNaN(firstStart)) return 1
   if (Number.isNaN(secondStart)) return -1
   return firstStart - secondStart
+}
+
+function compareRoleOptions(first, second, selectedCategory) {
+  const priority = ROLE_PRIORITY_BY_CATEGORY[selectedCategory]
+    ?? ROLE_PRIORITY_BY_CATEGORY[ALL_CATEGORIES]
+  const firstPriority = priority.indexOf(first.value)
+  const secondPriority = priority.indexOf(second.value)
+  const firstIsKnown = firstPriority >= 0
+  const secondIsKnown = secondPriority >= 0
+
+  if (firstIsKnown && secondIsKnown) {
+    return firstPriority - secondPriority
+  }
+
+  if (firstIsKnown) return -1
+  if (secondIsKnown) return 1
+
+  return first.label.localeCompare(second.label, 'de-DE', {
+    numeric: true,
+    sensitivity: 'base'
+  })
 }

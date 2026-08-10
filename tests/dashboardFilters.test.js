@@ -122,20 +122,41 @@ test('10. Kategorieänderung erhält weiterhin gültige Teamauswahl', () => {
 
 test('11. Kategorie Alle bietet die eindeutige Rollenvereinigung an', () => {
   const options = getAvailableRoleOptions(roles, 'all')
-  assert.equal(options.length, 9)
+  assert.deepEqual(
+    options.map(option => option.label),
+    [
+      'Zeitnehmer',
+      'Sekretär',
+      'Schiri',
+      'Wischer',
+      'Ordner',
+      'Verkauf',
+      'Kuchen',
+      'Brezeln / Sonstiges',
+      'Trikots'
+    ]
+  )
 })
 
 test('12. Kategorie Aktive bietet nur Aktive-Rollen an', () => {
   assert.deepEqual(
     getAvailableRoleOptions(roles, 'Aktive').map(option => option.label),
-    ['Ordner', 'Sekretär', 'Verkauf', 'Wischer', 'Zeitnehmer']
+    ['Zeitnehmer', 'Sekretär', 'Wischer', 'Ordner', 'Verkauf']
   )
 })
 
 test('13. Kategorie Jugend bietet nur Jugendrollen an', () => {
   assert.deepEqual(
     getAvailableRoleOptions(roles, 'Jugend').map(option => option.label),
-    ['Brezeln / Sonstiges', 'Kuchen', 'Schiri', 'Sekretär', 'Trikots', 'Verkauf', 'Zeitnehmer']
+    [
+      'Zeitnehmer',
+      'Sekretär',
+      'Schiri',
+      'Verkauf',
+      'Kuchen',
+      'Brezeln / Sonstiges',
+      'Trikots'
+    ]
   )
 })
 
@@ -312,4 +333,39 @@ test('33. Reconciliation bereinigt Teams, Rollen und wirkungslosen Offenfilter',
     selectedRoleNames: [],
     openSelectedRolesOnly: false
   })
+})
+
+test('34. unbekannte Rolle bleibt hinter den bekannten Rollen sichtbar', () => {
+  const rolesWithUnknown = [
+    ...roles,
+    { id: 'a-setup', name: 'Aufbau', category: 'Aktive', slots: 1 }
+  ]
+
+  assert.deepEqual(
+    getAvailableRoleOptions(rolesWithUnknown, 'Aktive')
+      .map(option => option.label),
+    ['Zeitnehmer', 'Sekretär', 'Wischer', 'Ordner', 'Verkauf', 'Aufbau']
+  )
+})
+
+test('35. mehrere unbekannte Rollen folgen anschließend alphabetisch', () => {
+  const rolesWithUnknown = [
+    ...roles,
+    { id: 'a-central', name: 'Zentrale', category: 'Aktive', slots: 1 },
+    { id: 'a-setup', name: 'Aufbau', category: 'Aktive', slots: 1 }
+  ]
+
+  assert.deepEqual(
+    getAvailableRoleOptions(rolesWithUnknown, 'Aktive')
+      .map(option => option.label),
+    [
+      'Zeitnehmer',
+      'Sekretär',
+      'Wischer',
+      'Ordner',
+      'Verkauf',
+      'Aufbau',
+      'Zentrale'
+    ]
+  )
 })

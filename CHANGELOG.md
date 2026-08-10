@@ -1,6 +1,12 @@
 # Changelog
 
-## Unveröffentlicht – Header- und App-Branding
+## V24.0.6.4 – Fachliche Sortierung der Helferrollen
+- Rollenoptionen im Dashboardfilter abhängig von `Alle`, `Aktive` oder `Jugend` in die festgelegte fachliche Reihenfolge gebracht
+- Dynamische Ermittlung, kategorieübergreifende Deduplizierung und Rollenauflösung nach Spielkategorie unverändert beibehalten
+- Unbekannte zukünftige Rollen weiterhin sichtbar hinter den priorisierten Rollen und dort deterministisch alphabetisch sortiert
+- Sortierungs- und Fallbacktests ergänzt; keine Datenbank-, RLS-, Policy-, Grant- oder sonstige Filterlogik geändert
+
+## V24.0.6.3 – Header- und App-Branding
 - Dashboard-Titel und motivierenden Vereinsuntertitel gemäß Branding-Vorgabe aktualisiert
 - Bereitgestelltes TVH-Logo in Desktop-Sidebar und mobiler Kopfzeile eingebunden
 - Sidebar-Branding auf „TVH“ und „Dashboard“ sowie den Primärton Dunkelrot umgestellt

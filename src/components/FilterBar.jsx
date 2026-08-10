@@ -5,16 +5,20 @@ export default function FilterBar() {
   const {
     selectedCategory,
     selectedTeamIds,
+    selectedMatchdayIds,
     selectedRoleNames,
     openSelectedRolesOnly,
     setSelectedCategory,
     toggleSelectedTeam,
     clearSelectedTeams,
+    toggleSelectedMatchday,
+    clearSelectedMatchdays,
     toggleSelectedRole,
     clearSelectedRoles,
     setOpenSelectedRolesOnly,
     resetFilters,
     getAvailableTeams,
+    getAvailableMatchdayOptions,
     getAvailableRoleOptions
   } = useDashboardStore()
 
@@ -23,6 +27,7 @@ export default function FilterBar() {
     label: team.name
   }))
   const roleOptions = getAvailableRoleOptions()
+  const matchdayOptions = getAvailableMatchdayOptions()
   const openFilterDisabled = selectedRoleNames.length === 0
 
   return (
@@ -30,7 +35,7 @@ export default function FilterBar() {
       aria-label="Dashboard-Filter"
       className="mb-6 min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
     >
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <label className="min-w-0">
           <span className="mb-2 block text-sm font-bold text-slate-700">
             Kategorie
@@ -55,6 +60,16 @@ export default function FilterBar() {
           selectedPluralLabel="Mannschaften"
           onChange={toggleSelectedTeam}
           onClear={clearSelectedTeams}
+        />
+
+        <MultiSelectFilter
+          label="Spieltage"
+          options={matchdayOptions}
+          selectedValues={selectedMatchdayIds}
+          allLabel="Alle Spieltage"
+          selectedPluralLabel="Spieltage"
+          onChange={toggleSelectedMatchday}
+          onClear={clearSelectedMatchdays}
         />
 
         <MultiSelectFilter
@@ -99,7 +114,7 @@ export default function FilterBar() {
         <button
           type="button"
           onClick={resetFilters}
-          className="min-h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 sm:col-span-2 xl:col-span-4"
+          className="min-h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 sm:col-span-2 xl:col-span-5"
         >
           Filter zurücksetzen
         </button>

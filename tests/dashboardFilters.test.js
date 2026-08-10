@@ -287,6 +287,7 @@ test('30. vollständiger Filterreset liefert exakt den Ausgangszustand', () => {
   assert.deepEqual(resetDashboardFilters(), {
     selectedCategory: 'all',
     selectedTeamIds: [],
+    selectedMatchdayIds: [],
     selectedRoleNames: [],
     openSelectedRolesOnly: false
   })
@@ -325,14 +326,106 @@ test('33. Reconciliation bereinigt Teams, Rollen und wirkungslosen Offenfilter',
     selectedTeamIds: ['h1', 'md1'],
     selectedRoleNames: ['Ordner'],
     openSelectedRolesOnly: true
-  }, teams, roles)
+  }, teams, roles, games)
 
   assert.deepEqual(result, {
     selectedCategory: 'Jugend',
     selectedTeamIds: ['md1'],
+    selectedMatchdayIds: [],
     selectedRoleNames: [],
     openSelectedRolesOnly: false
   })
+})
+
+test('36. ein ausgewählter Spieltag filtert eindeutig', () => {
+  assert.deepEqual(
+    ids(filter({ selectedMatchdayIds: ['2026-09-05'] })),
+    ['g-h2']
+  )
+})
+
+test('37. mehrere Spieltage werden mit OR verknüpft', () => {
+  assert.deepEqual(
+    ids(filter({
+      selectedMatchdayIds: [
+        '2026-08-29',
+        '2026-09-12_2026-09-13'
+      ]
+    })),
+    ['g-h1', 'g-md1', 'g-wd', 'g-we']
+  )
+})
+
+test('38. Spieltag wird mit Kategorie und Team per AND verknüpft', () => {
+  assert.deepEqual(
+    ids(filter({
+      selectedCategory: 'Jugend',
+      selectedTeamIds: ['wd', 'we'],
+      selectedMatchdayIds: ['2026-09-12_2026-09-13']
+    })),
+    ['g-wd', 'g-we']
+  )
+})
+
+test('39. Spieltag wird mit Rollen- und Offenfilter per AND verknüpft', () => {
+  const assignments = [1, 2, 3]
+    .map(number => assignment(String(number), 'g-h1', 'a-sale'))
+
+  assert.deepEqual(
+    ids(filter({
+      assignments,
+      selectedMatchdayIds: ['2026-08-29'],
+      selectedRoleNames: ['Verkauf'],
+      openSelectedRolesOnly: true
+    })),
+    ['g-h1']
+  )
+})
+
+test('40. KPI-Basis berücksichtigt den ausgewählten Spieltag', () => {
+  const matchdayGames = filter({
+    selectedMatchdayIds: ['2026-09-12_2026-09-13']
+  })
+  const result = calculateDashboardKpis({
+    games: matchdayGames,
+    teams,
+    roles,
+    assignments: []
+  })
+
+  assert.deepEqual(result, {
+    homeGames: 2,
+    openTasks: 30,
+    assignmentCount: 0,
+    teamCount: 3
+  })
+})
+
+test('41. Reconciliation entfernt nicht mehr vorhandene Spieltage', () => {
+  const result = reconcileDashboardFilters({
+    selectedCategory: 'all',
+    selectedTeamIds: [],
+    selectedMatchdayIds: ['2026-08-29', '2099-01-01'],
+    selectedRoleNames: [],
+    openSelectedRolesOnly: false
+  }, teams, roles, games)
+
+  assert.deepEqual(result.selectedMatchdayIds, ['2026-08-29'])
+})
+
+test('42. vollständige Filterkombination bleibt gruppenübergreifend AND', () => {
+  const assignments = [1, 2, 3]
+    .map(number => assignment(`cake-${number}`, 'g-wd', 'j-cake'))
+  const result = filter({
+    assignments,
+    selectedCategory: 'Jugend',
+    selectedTeamIds: ['md1', 'wd'],
+    selectedMatchdayIds: ['2026-09-12_2026-09-13'],
+    selectedRoleNames: ['Kuchen'],
+    openSelectedRolesOnly: true
+  })
+
+  assert.deepEqual(ids(result), ['g-md1'])
 })
 
 test('34. unbekannte Rolle bleibt hinter den bekannten Rollen sichtbar', () => {

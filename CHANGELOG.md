@@ -1,5 +1,15 @@
 # Changelog
 
+## V24.0.7.0 – Spieltagsgruppierung und Spieltagfilter
+- MatchCards dynamisch nach lokalen Spieltagen gruppiert; Samstag und der unmittelbar folgende Sonntag bilden eine gemeinsame Gruppe
+- Stabile Spieltags-IDs, korrekte Zeitraumlabels sowie chronologische Gruppen- und Spielsortierung ergänzt
+- Datums- und Uhrzeitbehandlung explizit auf `Europe/Berlin` vereinheitlicht, ohne gespeicherte `start_time`-Werte zu verändern
+- Unabhängigen Spieltag-Multiselect mit OR innerhalb und AND zu Kategorie, Teams, Rollen und Offenstatus ergänzt
+- Filterreset und KPI-Basis um die Spieltagsauswahl erweitert
+- Ungültige oder fehlende Startzeiten bleiben in der Fallbackgruppe „Datum unbekannt“ sichtbar
+- Automatisierte Tests für Gruppierungsregeln, Zeitzonen, Grenzfälle, Filterkombinationen, Reset und KPIs ergänzt
+- Keine Datenbank-, RLS-, Policy-, Grant-, CRUD- oder Importänderungen vorgenommen
+
 ## V24.0.6.4 – Fachliche Sortierung der Helferrollen
 - Rollenoptionen im Dashboardfilter abhängig von `Alle`, `Aktive` oder `Jugend` in die festgelegte fachliche Reihenfolge gebracht
 - Dynamische Ermittlung, kategorieübergreifende Deduplizierung und Rollenauflösung nach Spielkategorie unverändert beibehalten

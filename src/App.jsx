@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { useDashboardStore } from './store/useDashboardStore'
+import { createMatchdayGroups } from './utils/matchdays'
 
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
@@ -24,6 +25,7 @@ export default function App() {
   } = useAdminAuth()
 
   const {
+    games,
     loadData,
     getFilteredGames
   } = useDashboardStore()
@@ -39,6 +41,7 @@ export default function App() {
   }, [activePage, loadData])
 
   const filteredGames = getFilteredGames()
+  const matchdayGroups = createMatchdayGroups(filteredGames, games)
 
   function navigate(page) {
     setActivePage(page)
@@ -106,13 +109,36 @@ export default function App() {
 
             <FilterBar />
 
-            <div className="space-y-5">
+            <div className="space-y-8">
               {filteredGames.length > 0 ? (
-                filteredGames.map(game => (
-                  <MatchCard
-                    key={game.id}
-                    game={game}
-                  />
+                matchdayGroups.map(group => (
+                  <section
+                    key={group.id}
+                    aria-labelledby={`matchday-${group.id}`}
+                    className="min-w-0"
+                  >
+                    <div className="mb-4 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 border-l-4 border-[#8B1E2D] pl-3">
+                      <h2
+                        id={`matchday-${group.id}`}
+                        className="text-lg font-black text-slate-900 sm:text-xl"
+                      >
+                        Spieltag {group.label}
+                      </h2>
+                      <span className="text-sm font-semibold text-slate-500">
+                        {group.games.length}{' '}
+                        {group.games.length === 1 ? 'Spiel' : 'Spiele'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-5">
+                      {group.games.map(game => (
+                        <MatchCard
+                          key={game.id}
+                          game={game}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 ))
               ) : (
                 <div

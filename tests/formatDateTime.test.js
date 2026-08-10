@@ -6,10 +6,9 @@ import {
 } from '../src/utils/formatDateTime.js'
 
 test('formatiert die Anwurfzeit ohne Verschiebung aus lokaler Hallenzeit', () => {
-  const localStart = new Date(2026, 7, 29, 18, 30, 0, 0)
-
-  assert.equal(formatGameTime(localStart.toISOString()), '18:30 Uhr')
-  assert.equal(formatGameDate(localStart.toISOString()), '29.08.2026')
+  assert.equal(formatGameTime('2026-08-29T16:30:00.000Z'), '18:30 Uhr')
+  assert.equal(formatGameDate('2026-08-29T16:30:00.000Z'), '29.08.2026')
+  assert.equal(formatGameTime('2026-12-05T17:30:00.000Z'), '18:30 Uhr')
 })
 
 test('liefert für fehlende oder ungültige Startzeiten einen Platzhalter', () => {
@@ -19,7 +18,5 @@ test('liefert für fehlende oder ungültige Startzeiten einen Platzhalter', () =
 })
 
 test('formatiert Mitternacht im geforderten 00:00-Format', () => {
-  const localMidnight = new Date(2026, 7, 30, 0, 0, 0, 0)
-
-  assert.equal(formatGameTime(localMidnight.toISOString()), '00:00 Uhr')
+  assert.equal(formatGameTime('2026-08-29T22:00:00.000Z'), '00:00 Uhr')
 })

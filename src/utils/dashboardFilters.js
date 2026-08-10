@@ -1,3 +1,8 @@
+import {
+  getMatchdayIdByGameId,
+  pruneSelectedMatchdayIds
+} from './matchdays.js'
+
 export const ALL_CATEGORIES = 'all'
 
 const ROLE_PRIORITY_BY_CATEGORY = Object.freeze({
@@ -33,6 +38,7 @@ const ROLE_PRIORITY_BY_CATEGORY = Object.freeze({
 export const INITIAL_DASHBOARD_FILTERS = Object.freeze({
   selectedCategory: ALL_CATEGORIES,
   selectedTeamIds: [],
+  selectedMatchdayIds: [],
   selectedRoleNames: [],
   openSelectedRolesOnly: false
 })
@@ -151,6 +157,7 @@ export function filterDashboardGames({
   assignments,
   selectedCategory = ALL_CATEGORIES,
   selectedTeamIds = [],
+  selectedMatchdayIds = [],
   selectedRoleNames = [],
   openSelectedRolesOnly = false
 }) {
@@ -158,11 +165,16 @@ export function filterDashboardGames({
     (Array.isArray(teams) ? teams : []).map(team => [team.id, team])
   )
   const teamIds = new Set(uniqueStrings(selectedTeamIds))
+  const matchdayIds = new Set(uniqueStrings(selectedMatchdayIds))
+  const matchdayIdByGameId = matchdayIds.size > 0
+    ? getMatchdayIdByGameId(games)
+    : null
   const roleNames = uniqueStrings(
     (Array.isArray(selectedRoleNames) ? selectedRoleNames : [])
       .map(normalizeRoleName)
   )
   const hasTeamFilter = teamIds.size > 0
+  const hasMatchdayFilter = matchdayIds.size > 0
   const hasRoleFilter = roleNames.length > 0
 
   return (Array.isArray(games) ? games : [])
@@ -181,6 +193,13 @@ export function filterDashboardGames({
       }
 
       if (hasTeamFilter && !teamIds.has(String(team.id))) {
+        return false
+      }
+
+      if (
+        hasMatchdayFilter
+        && !matchdayIds.has(matchdayIdByGameId.get(String(game.id)))
+      ) {
         return false
       }
 
@@ -267,12 +286,13 @@ export function resetDashboardFilters() {
   return {
     selectedCategory: ALL_CATEGORIES,
     selectedTeamIds: [],
+    selectedMatchdayIds: [],
     selectedRoleNames: [],
     openSelectedRolesOnly: false
   }
 }
 
-export function reconcileDashboardFilters(filters, teams, roles) {
+export function reconcileDashboardFilters(filters, teams, roles, games = []) {
   const selectedCategory = filters?.selectedCategory ?? ALL_CATEGORIES
   const availableTeams = getAvailableTeams(teams, selectedCategory)
   const availableRoles = getAvailableRoleOptions(roles, selectedCategory)
@@ -284,10 +304,15 @@ export function reconcileDashboardFilters(filters, teams, roles) {
     filters?.selectedRoleNames ?? [],
     availableRoles
   )
+  const selectedMatchdayIds = pruneSelectedMatchdayIds(
+    filters?.selectedMatchdayIds ?? [],
+    games
+  )
 
   return {
     selectedCategory,
     selectedTeamIds,
+    selectedMatchdayIds,
     selectedRoleNames,
     openSelectedRolesOnly:
       selectedRoleNames.length > 0

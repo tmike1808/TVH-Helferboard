@@ -9,6 +9,7 @@ import {
   reconcileDashboardFilters,
   resetDashboardFilters
 } from '../utils/dashboardFilters'
+import { getMatchdayOptions } from '../utils/matchdays'
 
 export const useDashboardStore = create((set, get) => ({
   games: [],
@@ -29,16 +30,18 @@ export const useDashboardStore = create((set, get) => ({
       await supabase.from('helper_assignments').select('*')
 
     const currentState = get()
+    const nextGames = gamesError ? currentState.games : games ?? []
     const nextTeams = teamsError ? currentState.teams : teams ?? []
     const nextRoles = rolesError ? currentState.roles : roles ?? []
     const reconciledFilters = reconcileDashboardFilters(
       currentState,
       nextTeams,
-      nextRoles
+      nextRoles,
+      nextGames
     )
 
     set({
-      games: gamesError ? currentState.games : games ?? [],
+      games: nextGames,
       teams: nextTeams,
       roles: nextRoles,
       assignments: assignmentsError
@@ -82,7 +85,8 @@ export const useDashboardStore = create((set, get) => ({
     return reconcileDashboardFilters(
       { ...state, selectedCategory },
       state.teams,
-      state.roles
+      state.roles,
+      state.games
     )
   }),
 
@@ -98,11 +102,26 @@ export const useDashboardStore = create((set, get) => ({
     return reconcileDashboardFilters(
       { ...state, selectedTeamIds: [...nextIds] },
       state.teams,
-      state.roles
+      state.roles,
+      state.games
     )
   }),
 
   clearSelectedTeams: () => set({ selectedTeamIds: [] }),
+
+  toggleSelectedMatchday: (matchdayId, selected) => set(state => {
+    const nextIds = new Set(state.selectedMatchdayIds)
+
+    if (selected) {
+      nextIds.add(String(matchdayId))
+    } else {
+      nextIds.delete(String(matchdayId))
+    }
+
+    return { selectedMatchdayIds: [...nextIds] }
+  }),
+
+  clearSelectedMatchdays: () => set({ selectedMatchdayIds: [] }),
 
   toggleSelectedRole: (roleName, selected) => set(state => {
     const nextNames = new Set(state.selectedRoleNames)
@@ -146,6 +165,8 @@ export const useDashboardStore = create((set, get) => ({
     const { roles, selectedCategory } = get()
     return getAvailableRoleOptions(roles, selectedCategory)
   },
+
+  getAvailableMatchdayOptions: () => getMatchdayOptions(get().games),
 
   getFilteredGames: () => filterDashboardGames(get())
 }))

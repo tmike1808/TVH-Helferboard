@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 10. August 2026. Grundlage ist der Commit
-`89cf0bd` (`V24.0.6.1 Sprint 4: Sammellöschen und kompakte Teamnamen`)
-sowie der noch nicht committete Arbeitsstand von Sprint 5.
+`e561f5b` (`V24.0.6.4: Fachliche Sortierung der Helferrollen`) sowie der noch
+nicht committete Arbeitsstand von Sprint 6.
 
 ## 1. Projektziel
 
@@ -24,6 +24,9 @@ Vereinsmannschaften auf kompakte Vereinswerte um.
 Sprint 5 ergänzt die hierarchischen Dashboard-Filter mit Kategorie-
 Einfachauswahl, Team- und Rollen-Multiselect sowie einem optionalen Filter auf
 offene ausgewählte Rollen.
+Sprint 6 ergänzt die dynamische Gruppierung der MatchCards nach lokalen
+Spieltagen sowie einen unabhängigen Spieltag-Multiselect. Samstag und der
+unmittelbar folgende Sonntag werden dabei gemeinsam dargestellt.
 
 ## 2. Technischer Ist-Zustand
 
@@ -171,11 +174,13 @@ Abgesehen von `.git/` und dem installierten `node_modules/` besteht das Reposito
 `src/store/useDashboardStore.js` verwendet einen einzelnen Zustand-Store. Er enthält:
 
 - Daten: `games`, `teams`, `roles`, `assignments`
-- Filter: `selectedCategory`, `selectedTeamIds`, `selectedRoleNames` und
-  `openSelectedRolesOnly`
-- Aktionen: Laden/Neuladen, Kategorie setzen, Team- und Rollenauswahl
-  umschalten/leeren, Offenfilter setzen und zentraler Filterreset
-- Selektorlogik: dynamische Team-/Rollenoptionen und `getFilteredGames`
+- Filter: `selectedCategory`, `selectedTeamIds`, `selectedMatchdayIds`,
+  `selectedRoleNames` und `openSelectedRolesOnly`
+- Aktionen: Laden/Neuladen, Kategorie setzen, Team-, Spieltag- und
+  Rollenauswahl umschalten/leeren, Offenfilter setzen und zentraler
+  Filterreset
+- Selektorlogik: dynamische Team-/Spieltag-/Rollenoptionen und
+  `getFilteredGames`
 
 Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält
 Spiele, Teams, Lade-, Formular-, Speicher-, Auswahl-, Sammellösch- und
@@ -198,11 +203,22 @@ dafür ausschließlich `authService`.
 `loadData` liest alle vier Tabellen direkt über den Supabase-Client und speichert die Ergebnisse im Store. Die Abfragen laufen nacheinander. Ladezustände und sichtbare Fehlerzustände werden nicht verwaltet. Erfolgreiche `data: null`-Antworten werden auf leere Arrays normalisiert. Bei Supabase-Fehlern bleiben die zuletzt gültigen Store-Daten erhalten und technische Details werden protokolliert; eine sichtbare Dashboard-Fehlermeldung gibt es weiterhin nicht. Unerwartete Promise-Fehler aus `loadData()` werden in `App` abgefangen.
 
 Die Spielfilterung ist in `src/utils/dashboardFilters.js` testbar gekapselt.
-Zwischen Kategorie, Mannschaft, Rolle und optionalem Offenstatus gilt AND;
-innerhalb der Team- und Rollenauswahl gilt OR. Kategorieänderungen bereinigen
+Zwischen Kategorie, Mannschaft, Spieltag, Rolle und optionalem Offenstatus
+gilt AND; innerhalb der Team-, Spieltag- und Rollenauswahl gilt OR.
+Kategorieänderungen bereinigen
 ungültige nachgelagerte Auswahlwerte. Gleichnamige Rollen werden über ihren
 normalisierten Namen einmal angeboten und pro Spielkategorie auf die korrekte
-`helper_roles.id` aufgelöst. `loadData` erhält gültige Filterzustände.
+`helper_roles.id` aufgelöst. Spieltage werden unabhängig von Kategorie, Team
+und Rolle aus dem vollständigen Spielbestand gebildet. `loadData` erhält
+gültige Filterzustände.
+
+`src/utils/matchdays.js` kapselt die lokale Spieltagsbildung. Maßgeblich ist
+`Europe/Berlin`: Spiele desselben Kalendertags bilden eine Gruppe; ein
+Samstag und der unmittelbar folgende Sonntag werden zusammengeführt. Stabile
+IDs bestehen aus einem Datum beziehungsweise beiden Datumswerten. Nach der
+Filterung bleiben ID und Zeitraum der ursprünglichen Gruppe erhalten; leere
+Gruppen werden nicht gerendert. Fehlende oder ungültige Startzeiten bleiben
+in der abschließenden Gruppe „Datum unbekannt“ sichtbar.
 
 ### Supabase-Anbindung
 
@@ -343,8 +359,8 @@ nach Reload oder Löschung.
 - `Topbar`: konfigurierbare Überschrift und Untertitel mit den bisherigen Dashboard-Texten als Standard.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und
   Mannschaften auf Basis desselben gefilterten Spielbestands wie die Liste.
-- `FilterBar`: feste Hierarchie aus Kategorie-Einfachauswahl, Team- und
-  Rollen-Multiselect, optionalem Offenfilter und zentralem Reset.
+- `FilterBar`: feste Hierarchie aus Kategorie-Einfachauswahl, Team-,
+  Spieltag- und Rollen-Multiselect, optionalem Offenfilter und zentralem Reset.
 - `MultiSelectFilter`: kleine kontrollierte Checkbox-Popover-Komponente mit
   Auswahlzusammenfassung, Leeren, Klick-außerhalb-/Escape-Schließen,
   Tastaturbedienung und sichtbaren Fokuszuständen.
@@ -377,6 +393,11 @@ nach Reload oder Löschung.
 
 - Laden von Spielen, Teams, Helferrollen und Helferzuordnungen aus Supabase.
 - Anzeige und Aufklappen von MatchCards.
+- Dynamische Spieltagsgruppen aus `start_time` in lokaler deutscher Zeit;
+  Samstag und unmittelbar folgender Sonntag bilden gemeinsam einen Spieltag.
+- Chronologische Spieltagsüberschriften mit stabilem Zeitraum und Anzahl der
+  aktuell sichtbaren Spiele; innerhalb jeder Gruppe bleiben Spiele
+  chronologisch sortiert.
 - Kategorie-Einfachfilter `Alle | Aktive | Jugend` als stärkster Filter.
 - Mehrfachauswahl von Mannschaften mit OR-Verknüpfung und kaskadierenden,
   aus `teams.category` abgeleiteten Optionen.
@@ -385,6 +406,9 @@ nach Reload oder Löschung.
 - Fachliche Sortierung der Rollenfilteroptionen abhängig von `Alle`, `Aktive`
   oder `Jugend`; unbekannte Rollen bleiben sichtbar und folgen alphabetisch
   hinter den bekannten Rollen.
+- Mehrfachauswahl von Spieltagen mit OR-Verknüpfung. Die Optionen werden aus
+  allen geladenen Spielen gebildet und bleiben von Kategorie, Mannschaft und
+  Rolle unabhängig.
 - Automatische Bereinigung ungültiger Team- und Rollenauswahlen bei
   Kategorieänderungen sowie zentraler Filterreset.
 - Optionaler Filter auf Spiele, bei denen mindestens eine ausgewählte und zur
@@ -659,20 +683,23 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 ### RB-3 – Intelligente Spieltagsgruppierung
 
-- Alle Spiele desselben Datums bilden grundsätzlich einen Spieltag.
-- Spiele am Samstag und am unmittelbar folgenden Sonntag bilden gemeinsam
-  einen vollständigen Spieltag.
-- Nur Samstag bleibt ein eigener Spieltag.
-- Nur Sonntag bleibt ein eigener Spieltag.
-- Freitag oder Montag werden nicht automatisch angegliedert.
-- Gruppierung dynamisch aus `start_time` berechnen.
-- Zeitraum passend darstellen, zum Beispiel `29.–30.08.2026`.
+- In Sprint 6 umgesetzt.
+- Alle Spiele desselben lokalen Datums bilden einen Spieltag; Samstag und der
+  unmittelbar folgende Sonntag werden gemeinsam gruppiert.
+- Freitag und Montag bleiben getrennt; einzelne Wochenendtage und andere
+  Wochentage bilden jeweils eigene Gruppen.
+- IDs, Zeitraumlabels und chronologische Reihenfolge werden dynamisch aus
+  `start_time` in `Europe/Berlin` berechnet.
+- Ungültige Startzeiten verschwinden nicht, sondern erscheinen unter
+  „Datum unbekannt“.
 
 ### RB-4 – Spieltagfilter
 
-- Filterwerte entsprechen den berechneten Spieltagsgruppen.
-- Samstag und der direkt folgende Sonntag erscheinen als ein Filterwert.
-- KPIs, Listen und MatchCards berücksichtigen den ausgewählten Spieltag.
+- In Sprint 6 umgesetzt.
+- Der unabhängige Multiselect bietet sämtliche berechneten Spieltagsgruppen.
+- Mehrere Spieltage sind per OR, die übrigen Filtergruppen per AND verknüpft.
+- KPIs, Gruppenüberschriften und MatchCards beruhen auf demselben gefilterten
+  Spielbestand; der zentrale Reset leert auch die Spieltagsauswahl.
 
 ### RB-5 – Verbesserter Re-Import
 
@@ -773,4 +800,6 @@ geprüft dokumentiert.
 - **V24.0.6.3:** aktualisiert Dashboard-Header, App-Branding und TVH-Logo.
 - **V24.0.6.4:** sortiert die dynamisch geladenen Helferrollen im
   Dashboardfilter fachlich je Kategorie mit alphabetischem Fallback.
-- **V24.0.7:** handball.net-Import; nicht Teil des aktuellen MVP.
+- **V24.0.7.0:** Sprint 6 setzt RB-3 und RB-4 mit lokaler dynamischer
+  Spieltagsgruppierung und unabhängigem Spieltag-Multiselect um.
+- **Später:** handball.net-Import; nicht Teil des aktuellen MVP.

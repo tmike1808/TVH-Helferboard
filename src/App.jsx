@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import KPISection from './components/KPISection'
 import FilterBar from './components/FilterBar'
+import MatchdayCalendar from './components/MatchdayCalendar'
 import MatchCard from './components/MatchCard'
 import AdminGameImportPage from './pages/AdminGameImportPage'
 import AdminGamesPage from './pages/AdminGamesPage'
@@ -108,6 +109,8 @@ export default function App() {
             <KPISection />
 
             <FilterBar />
+
+            <MatchdayCalendar />
 
             <div className="space-y-8">
               {filteredGames.length > 0 ? (

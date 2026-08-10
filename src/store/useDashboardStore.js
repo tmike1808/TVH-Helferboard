@@ -10,6 +10,7 @@ import {
   resetDashboardFilters
 } from '../utils/dashboardFilters'
 import { getMatchdayOptions } from '../utils/matchdays'
+import { getCalendarSelection } from '../utils/matchdayCalendar'
 
 export const useDashboardStore = create((set, get) => ({
   games: [],
@@ -122,6 +123,13 @@ export const useDashboardStore = create((set, get) => ({
   }),
 
   clearSelectedMatchdays: () => set({ selectedMatchdayIds: [] }),
+
+  selectMatchdayFromCalendar: matchdayId => set(state => ({
+    selectedMatchdayIds: getCalendarSelection(
+      state.selectedMatchdayIds,
+      matchdayId
+    )
+  })),
 
   toggleSelectedRole: (roleName, selected) => set(state => {
     const nextNames = new Set(state.selectedRoleNames)

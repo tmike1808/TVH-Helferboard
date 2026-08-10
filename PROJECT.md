@@ -1,8 +1,9 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 10. August 2026. Grundlage ist der Commit
-`59f5766` (`V24.0.7.0 Sprint 6: Spieltagsgruppierung und Spieltagfilter`) sowie
-der noch nicht committete Arbeitsstand von Sprint 7.
+`fbb0151` (`V24.0.7.1 Sprint 7: Mindestbesetzung und
+Durchführbarkeitsstatus`) sowie der noch nicht committete Arbeitsstand von
+Sprint 8.
 
 ## 1. Projektziel
 
@@ -32,6 +33,10 @@ Mindestbesetzung. Aktive/Verkauf und Aktive/Ordner sind mit 3/4 Helfern
 durchführbar, bleiben bei einem freien Slot aber weiterhin im Offenfilter und
 in der KPI „Offene Dienste“ offen. Die Migration ist auf der konfigurierten
 Remote-Datenbank angewendet und end-to-end geprüft.
+Sprint 8 ergänzt eine kompakte öffentliche Monatsansicht als visuelle
+Navigation für dieselben Spieltagsgruppen und denselben
+`selectedMatchdayIds`-Filterzustand. Es entsteht keine zweite fachliche
+Spieltagslogik.
 
 ## 2. Technischer Ist-Zustand
 
@@ -67,7 +72,8 @@ Es gibt keine Skripte für Linting, Formatierung oder Vorschau.
 
 1. `index.html` stellt das Element `#root` bereit und lädt `/src/main.jsx`.
 2. `src/main.jsx` initialisiert React mit `ReactDOM.createRoot`, aktiviert `React.StrictMode`, lädt die globalen Styles und rendert `App`.
-3. `src/App.jsx` lädt beim Mounten die Dashboard-Daten, rendert Sidebar, Topbar, KPIs, Filter und die gefilterten MatchCards.
+3. `src/App.jsx` lädt beim Mounten die Dashboard-Daten, rendert Sidebar,
+   Topbar, KPIs, Filter, Spieltagskalender und die gefilterten MatchCards.
 
 Es ist kein Client-Router installiert. `App` schaltet über lokalen
 React-Zustand zwischen Dashboard, Admin-Login, geschützter
@@ -179,6 +185,9 @@ Seit Sprint 6 und dem lokalen Sprint-7-Arbeitsstand gehören außerdem
 `tests/matchdays.test.js`, `tests/staffingStatus.test.js`, der Sprint-6-Report
 sowie die angewendete Migration
 `20260810000300_add_helper_role_minimum_staff.sql` zur Struktur.
+Sprint 8 ergänzt `src/components/MatchdayCalendar.jsx`,
+`src/utils/matchdayCalendar.js`, `tests/matchdayCalendar.test.js` und den
+zugehörigen Sprint-Report.
 
 ### Zustandsverwaltung
 
@@ -188,8 +197,8 @@ sowie die angewendete Migration
 - Filter: `selectedCategory`, `selectedTeamIds`, `selectedMatchdayIds`,
   `selectedRoleNames` und `openSelectedRolesOnly`
 - Aktionen: Laden/Neuladen, Kategorie setzen, Team-, Spieltag- und
-  Rollenauswahl umschalten/leeren, Offenfilter setzen und zentraler
-  Filterreset
+  Rollenauswahl umschalten/leeren, Kalender-Einzelauswahl setzen oder
+  abwählen, Offenfilter setzen und zentraler Filterreset
 - Selektorlogik: dynamische Team-/Spieltag-/Rollenoptionen und
   `getFilteredGames`
 
@@ -230,6 +239,12 @@ IDs bestehen aus einem Datum beziehungsweise beiden Datumswerten. Nach der
 Filterung bleiben ID und Zeitraum der ursprünglichen Gruppe erhalten; leere
 Gruppen werden nicht gerendert. Fehlende oder ungültige Startzeiten bleiben
 in der abschließenden Gruppe „Datum unbekannt“ sichtbar.
+
+`src/utils/matchdayCalendar.js` verwendet diese vollständigen Gruppen für
+Initialmonat, Montag-bis-Sonntag-Monatsmatrix, Datum-zu-Matchday-Zuordnung,
+Monatsnavigation und ausgewählte Kalendertage. Der Kalender greift nicht in
+die Gruppierungsregeln ein und arbeitet unabhängig von Kategorie-, Team- und
+Rollenfiltern immer mit dem vollständigen geladenen Spielbestand.
 
 ### Supabase-Anbindung
 
@@ -372,6 +387,10 @@ nach Reload oder Löschung.
   Mannschaften auf Basis desselben gefilterten Spielbestands wie die Liste.
 - `FilterBar`: feste Hierarchie aus Kategorie-Einfachauswahl, Team-,
   Spieltag- und Rollen-Multiselect, optionalem Offenfilter und zentralem Reset.
+- `MatchdayCalendar`: kompakte öffentliche Monatsansicht mit
+  Montag-bis-Sonntag-Raster, Monatsnavigation, Spieltagsmarkierungen,
+  Heute-Kennzeichnung und zugänglicher Synchronisation mit derselben
+  Spieltagauswahl wie der Multiselect.
 - `MultiSelectFilter`: kleine kontrollierte Checkbox-Popover-Komponente mit
   Auswahlzusammenfassung, Leeren, Klick-außerhalb-/Escape-Schließen,
   Tastaturbedienung und sichtbaren Fokuszuständen.
@@ -422,6 +441,12 @@ nach Reload oder Löschung.
 - Mehrfachauswahl von Spieltagen mit OR-Verknüpfung. Die Optionen werden aus
   allen geladenen Spielen gebildet und bleiben von Kategorie, Mannschaft und
   Rolle unabhängig.
+- Kalendernavigation über dieselben vollständigen Spieltagsgruppen: Klick auf
+  einen markierten Tag setzt genau einen Spieltag, erneuter Klick hebt ihn auf;
+  ein gemeinsamer Samstag/Sonntag verweist an beiden Tagen auf dieselbe ID.
+- Synchronisation zwischen Kalender und Spieltag-Multiselect einschließlich
+  sichtbarer Mehrfachauswahl und automatischem Monatswechsel bei genau einer
+  extern ausgewählten Gruppe.
 - Automatische Bereinigung ungültiger Team- und Rollenauswahlen bei
   Kategorieänderungen sowie zentraler Filterreset.
 - Optionaler Filter auf Spiele, bei denen mindestens eine ausgewählte und zur
@@ -526,10 +551,11 @@ wieder entfernt.
 - Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die DB-0-Policy muss deshalb für die öffentliche Austragefunktion derzeit das Löschen jeder sichtbaren Zuordnung anhand ihrer ID erlauben.
 - Die DB-0-Migration verhindert namensgleiche Doppeleinträge je Spiel und Rolle ohne Beachtung der Groß-/Kleinschreibung. Eine konkurrierende Überbuchung über `helper_roles.slots` wird weiterhin nicht serverseitig verhindert.
 - Das Dashboard besitzt weiterhin keine eigene Lade-, Leer-, Netzwerkfehler- oder Wiederholungsansicht; die Admin-Spieleübersicht behandelt Laden, Fehler und leere Daten.
-- 100 automatisierte Tests decken unter anderem Dashboardfilter,
-  Spieltagsbildung, Rollenpriorisierung, Mindestbesetzung, KPI-/Offenstatus,
-  Excel-Parser und Importworkflow ab. Für das Spiele-CRUD bestehen weiterhin
-  keine automatisierten Komponenten- oder End-to-End-Tests.
+- 117 automatisierte Tests decken unter anderem Dashboardfilter,
+  Spieltagsbildung, Kalender-Monatsmatrix und -Auswahl, Rollenpriorisierung,
+  Mindestbesetzung, KPI-/Offenstatus, Excel-Parser und Importworkflow ab. Für
+  das Spiele-CRUD bestehen weiterhin keine automatisierten Komponenten- oder
+  End-to-End-Tests.
 - Es gibt keine Deployment-Konfiguration im Repository.
 
 Das `CHANGELOG.md` nennt für `STABILIZATION_01` Rollensortierung, Trimmen von
@@ -760,6 +786,8 @@ zum Hosting-Sprint. Sie müssen jedoch vor dem Saisonrelease umgesetzt werden.
 
 - `minimum_staff` und fachlicher Durchführbarkeitsstatus sind in Sprint 7
   umgesetzt, remote migriert und end-to-end abgenommen.
+- Die kompakte Kalenderansicht als visuelle Navigation für RB-3/RB-4 ist in
+  Sprint 8 umgesetzt, ohne die Spieltagsdefinition zu verändern.
 - Weiter offen bleibt RB-5: verbesserter Re-Import.
 
 ## 7. Entwicklungsregeln
@@ -826,4 +854,6 @@ geprüft dokumentiert.
   Spieltagsgruppierung und unabhängigem Spieltag-Multiselect um.
 - **V24.0.7.1:** Sprint 7 führt `minimum_staff` sowie getrennte Zustände für
   Helferbedarf, Durchführbarkeit mit offenen Plätzen und Vollbelegung ein.
+- **V24.0.7.2:** Sprint 8 ergänzt eine kompakte Monatskalender-Navigation für
+  die bestehenden Spieltagsgruppen und den bestehenden Spieltagfilter.
 - **Später:** handball.net-Import; nicht Teil des aktuellen MVP.

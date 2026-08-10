@@ -1,5 +1,14 @@
 # Changelog
 
+## V24.0.7.2 – Kalenderansicht für Spieltage
+- Kompakte, mobile Monatsansicht als zweite Bedienoberfläche für den bestehenden Spieltagfilter ergänzt
+- Vollständige Spieltagsgruppen, stabile IDs, Zeitraumlabels und Europe/Berlin-Logik ausschließlich aus den Sprint-6-Helpern wiederverwendet
+- Einzelne Spieltage und gemeinsame Samstag/Sonntag-Gruppen im Kalender markiert und zugänglich auswählbar gemacht
+- Kalender-Einzelauswahl, erneutes Abwählen und bestehende Multiselect-Mehrfachauswahl auf demselben Filterzustand synchronisiert
+- Initialmonat, Monatsnavigation, Heute-Kennzeichnung, mobile Touchziele und verständliche ARIA-Zustände ergänzt
+- Reine Kalenderhelper und automatisierte Tests für Monatsmatrix, Auswahl, Grenzfälle, Filterstabilität und Zeitzone ergänzt
+- Keine neue Abhängigkeit sowie keine Datenbank-, Migration-, RLS-, Policy-, Grant- oder Datenänderung vorgenommen
+
 ## V24.0.7.1 – Mindestbesetzung und Durchführbarkeitsstatus
 - `helper_roles.minimum_staff` mit sicherer Migration, NOT-NULL- und Werteconstraint eingeführt
 - Mindestbesetzung für Aktive/Verkauf und Aktive/Ordner auf 3 von 4, für alle übrigen Rollen auf die vollständige Slotzahl gesetzt

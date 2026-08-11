@@ -1,5 +1,15 @@
 # Changelog
 
+## V24.0.7.4 – Persönliche Dashboard-Voreinstellungen
+- Lokale, versionierte Speicherung der persönlichen Dashboard-Ansicht ohne Benutzerkonto ergänzt
+- Ausschließlich Kategorie, Mannschaften, Helferrollen und der zugehörige Offenfilter werden im Browser gespeichert
+- Gespeicherte Werte werden nach dem Datenladen gegen aktuelle Teams und dynamische Rollen geprüft und kaskadierend bereinigt
+- Spieltagsauswahl, Vergangenheitsanzeige und sichtbarer Kalendermonat bleiben bewusst temporär und starten nach jedem vollständigen Laden im Standardzustand
+- Speichern, Löschen, dauerhafter Status sowie verständliche Erfolgs- und Speicherfehlermeldungen in die bestehende Filterleiste integriert
+- Filterreset und Löschen der Voreinstellung fachlich getrennt: Reset behält die Speicherung, Löschen behält die aktuelle Ansicht
+- 38 automatisierte Speicher-, Schema-, Fehler-, Bereinigungs-, Reload- und Beispielszenarien ergänzt
+- Keine neue Abhängigkeit sowie keine Supabase-, Datenbank-, Migration-, RLS-, Policy-, Grant- oder Datenänderung vorgenommen
+
 ## V24.0.7.3 – Kalender-Kaskade und Vergangenheitslogik
 - Vergangene Spiele standardmäßig anhand des lokalen Kalendertags in `Europe/Berlin` aus Dashboardliste und KPIs ausgeblendet
 - Zugänglichen Filter „Vergangene Spiele anzeigen“ ergänzt; heutige Spiele bleiben unabhängig von ihrer Anwurfzeit den gesamten Tag sichtbar

@@ -12,12 +12,23 @@ import {
   resetDashboardFilters
 } from '../utils/dashboardFilters'
 import { getCalendarSelection } from '../utils/matchdayCalendar'
+import {
+  createDashboardPreferences,
+  deleteDashboardPreferences,
+  readDashboardPreferences,
+  resolveDashboardPreferences,
+  saveDashboardPreferences
+} from '../services/dashboardPreferences'
 
 export const useDashboardStore = create((set, get) => ({
   games: [],
   teams: [],
   roles: [],
   assignments: [],
+  preferencesHydrated: false,
+  hasSavedPreferences: false,
+  preferencesMessage: '',
+  preferencesError: '',
 
   ...resetDashboardFilters(),
 
@@ -35,12 +46,37 @@ export const useDashboardStore = create((set, get) => ({
     const nextGames = gamesError ? currentState.games : games ?? []
     const nextTeams = teamsError ? currentState.teams : teams ?? []
     const nextRoles = rolesError ? currentState.roles : roles ?? []
-    const reconciledFilters = reconcileDashboardFilters(
-      currentState,
-      nextTeams,
-      nextRoles,
-      nextGames
-    )
+    const canHydratePreferences =
+      !currentState.preferencesHydrated
+      && !teamsError
+      && !rolesError
+    const storedPreferences = canHydratePreferences
+      ? readDashboardPreferences()
+      : null
+    const reconciledFilters = canHydratePreferences
+      ? resolveDashboardPreferences(
+        storedPreferences.preferences,
+        nextTeams,
+        nextRoles,
+        nextGames
+      )
+      : reconcileDashboardFilters(
+        currentState,
+        nextTeams,
+        nextRoles,
+        nextGames
+      )
+
+    if (storedPreferences?.status === 'valid') {
+      const cleanedPreferences = createDashboardPreferences(reconciledFilters)
+
+      if (
+        JSON.stringify(cleanedPreferences)
+        !== JSON.stringify(storedPreferences.preferences)
+      ) {
+        saveDashboardPreferences(reconciledFilters)
+      }
+    }
 
     set({
       games: nextGames,
@@ -49,6 +85,15 @@ export const useDashboardStore = create((set, get) => ({
       assignments: assignmentsError
         ? currentState.assignments
         : assignments ?? [],
+      preferencesHydrated:
+        currentState.preferencesHydrated || canHydratePreferences,
+      hasSavedPreferences: canHydratePreferences
+        ? storedPreferences.status === 'valid'
+        : currentState.hasSavedPreferences,
+      preferencesError:
+        ['unavailable', 'read-failed'].includes(storedPreferences?.status)
+          ? 'Die persönliche Ansicht konnte in diesem Browser nicht geladen werden.'
+          : currentState.preferencesError,
       ...reconciledFilters
     })
 
@@ -171,6 +216,38 @@ export const useDashboardStore = create((set, get) => ({
   })),
 
   resetFilters: () => set(resetDashboardFilters()),
+
+  saveCurrentDashboardPreferences: () => set(state => {
+    const result = saveDashboardPreferences(state)
+
+    return result.ok
+      ? {
+        hasSavedPreferences: true,
+        preferencesMessage: 'Meine Ansicht wurde gespeichert.',
+        preferencesError: ''
+      }
+      : {
+        preferencesMessage: '',
+        preferencesError:
+          'Meine Ansicht konnte in diesem Browser nicht gespeichert werden.'
+      }
+  }),
+
+  deleteCurrentDashboardPreferences: () => set(() => {
+    const result = deleteDashboardPreferences()
+
+    return result.ok
+      ? {
+        hasSavedPreferences: false,
+        preferencesMessage: 'Meine gespeicherte Ansicht wurde gelöscht.',
+        preferencesError: ''
+      }
+      : {
+        preferencesMessage: '',
+        preferencesError:
+          'Meine gespeicherte Ansicht konnte nicht gelöscht werden.'
+      }
+  }),
 
   getAvailableTeams: () => {
     const { teams, selectedCategory } = get()

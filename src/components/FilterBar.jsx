@@ -9,6 +9,9 @@ export default function FilterBar() {
     selectedMatchdayIds,
     selectedRoleNames,
     openSelectedRolesOnly,
+    hasSavedPreferences,
+    preferencesMessage,
+    preferencesError,
     setSelectedCategory,
     toggleSelectedTeam,
     clearSelectedTeams,
@@ -19,6 +22,8 @@ export default function FilterBar() {
     clearSelectedRoles,
     setOpenSelectedRolesOnly,
     resetFilters,
+    saveCurrentDashboardPreferences,
+    deleteCurrentDashboardPreferences,
     getAvailableTeams,
     getAvailableMatchdayOptions,
     getAvailableRoleOptions
@@ -130,13 +135,47 @@ export default function FilterBar() {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={resetFilters}
-          className="min-h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 sm:col-span-2 xl:col-span-6"
-        >
-          Filter zurücksetzen
-        </button>
+        <div className="flex min-w-0 flex-col gap-3 sm:col-span-2 sm:flex-row sm:flex-wrap xl:col-span-6">
+          <button
+            type="button"
+            onClick={saveCurrentDashboardPreferences}
+            className="min-h-12 min-w-0 rounded-2xl bg-[#8B1E2D] px-5 font-bold text-white outline-none hover:bg-[#741826] focus-visible:ring-2 focus-visible:ring-[#8B1E2D] focus-visible:ring-offset-2"
+          >
+            Meine Ansicht speichern
+          </button>
+
+          {hasSavedPreferences && (
+            <button
+              type="button"
+              onClick={deleteCurrentDashboardPreferences}
+              className="min-h-12 min-w-0 rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              Meine Ansicht löschen
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="min-h-12 min-w-0 rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            Filter zurücksetzen
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 min-h-5 text-sm" aria-live="polite">
+        {preferencesError ? (
+          <p className="font-semibold text-red-700" role="alert">
+            {preferencesError}
+          </p>
+        ) : preferencesMessage ? (
+          <p className="font-semibold text-emerald-700" role="status">
+            {preferencesMessage}
+          </p>
+        ) : hasSavedPreferences ? (
+          <p className="text-slate-500">Meine Ansicht gespeichert</p>
+        ) : null}
       </div>
     </section>
   )

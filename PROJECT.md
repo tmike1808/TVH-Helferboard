@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
 Stand dieser Bestandsaufnahme: 11. August 2026. Grundlage ist der Commit
-`3dc448d` (`V24.0.7.2 Sprint 8: Kalenderansicht für Spieltage`) sowie der noch
-nicht committete Arbeitsstand von Sprint 9.
+`d79ff1e` (`V24.0.7.3 Sprint 9: Kalender-Kaskade und Vergangenheitslogik`)
+sowie der noch nicht committete Arbeitsstand von Sprint 10.
 
 ## 1. Projektziel
 
@@ -43,6 +43,12 @@ nach Kategorie und Mannschaft; historische Spieltagsauswahlen bleiben gezielt
 aufrufbar. Der Browser-Titel lautet „TVH Dashboard“; eine reine
 „Heute“-Navigation führt im Kalender zum aktuellen Berlin-Monat, ohne Filter
 zu verändern.
+Sprint 10 ergänzt persönliche Dashboard-Voreinstellungen ausschließlich im
+lokalen Browser. Gespeichert werden Kategorie, Mannschaften, Helferrollen und
+der zugehörige Offenfilter. Vergangenheitsansicht, Spieltagsauswahl und
+sichtbarer Kalendermonat bleiben temporär und starten nach einem vollständigen
+Neuladen im Standardzustand. Es gibt weiterhin keine Helfer-Benutzerkonten und
+keine Synchronisation persönlicher Einstellungen mit Supabase.
 
 ## 2. Technischer Ist-Zustand
 
@@ -198,6 +204,9 @@ Sprint 9 ergänzt `tests/dashboardTimeCalendarFilters.test.js` und den Report
 `reports/V24.0.7.3-Sprint-9-Time-Calendar-Filters.md`; die bestehenden Filter-,
 Datums-, Kalender- und Matchday-Dateien werden gezielt erweitert. Der
 Dokumenttitel wird zusätzlich durch `tests/documentTitle.test.js` abgesichert.
+Sprint 10 ergänzt `src/services/dashboardPreferences.js`,
+`tests/dashboardPreferences.test.js` und den Report
+`reports/V24.0.7.4-Sprint-10-Preferences.md`.
 
 ### Zustandsverwaltung
 
@@ -211,6 +220,9 @@ Dokumenttitel wird zusätzlich durch `tests/documentTitle.test.js` abgesichert.
   abwählen, Vergangenheit und Offenfilter setzen sowie zentraler Filterreset
 - Selektorlogik: dynamische Team-/Spieltag-/Rollenoptionen, relevante
   Kalendergruppen und `getFilteredGames`
+- Voreinstellungen: einmalige Hydrierung nach dem ersten erfolgreichen Laden
+  von Teams und Rollen, lokaler Speicherstatus sowie Aktionen zum Speichern
+  und Löschen der persönlichen Ansicht
 
 Die Admin-Spieleübersicht verwendet diesen Store bewusst nicht. Sie hält
 Spiele, Teams, Lade-, Formular-, Speicher-, Auswahl-, Sammellösch- und
@@ -231,6 +243,14 @@ Session, Lade-, Fehler- und Adminstatus innerhalb der Anwendung und verwendet
 dafür ausschließlich `authService`.
 
 `loadData` liest alle vier Tabellen direkt über den Supabase-Client und speichert die Ergebnisse im Store. Die Abfragen laufen nacheinander. Ladezustände und sichtbare Fehlerzustände werden nicht verwaltet. Erfolgreiche `data: null`-Antworten werden auf leere Arrays normalisiert. Bei Supabase-Fehlern bleiben die zuletzt gültigen Store-Daten erhalten und technische Details werden protokolliert; eine sichtbare Dashboard-Fehlermeldung gibt es weiterhin nicht. Unerwartete Promise-Fehler aus `loadData()` werden in `App` abgefangen.
+
+Nach dem ersten erfolgreichen Laden von Teams und Rollen liest `loadData`
+einmalig die versionierte lokale Dashboard-Voreinstellung. Die bestehende
+Reconciliation entfernt nicht mehr vorhandene oder zur Kategorie unpassende
+Teams und Rollen. Spätere Dashboard-Refreshes wenden die Voreinstellung nicht
+erneut an und erhalten damit den aktuellen UI-Zustand. Ein vollständiger
+Seitenreload startet `showPastGames` mit `false` und
+`selectedMatchdayIds` leer.
 
 Die Spielfilterung ist in `src/utils/dashboardFilters.js` testbar gekapselt.
 Zwischen Kategorie, Mannschaft, Zeit, Spieltag, Rolle und optionalem
@@ -300,6 +320,18 @@ Helferzuordnungen ist für den weiteren Testbetrieb fachlich akzeptiert; echte
 Saison-Helferdaten müssen nicht wiederhergestellt werden.
 
 ### Services
+
+`src/services/dashboardPreferences.js`:
+
+- verwendet ausschließlich den versionierten Browser-Schlüssel
+  `tvh-dashboard-preferences-v1`,
+- speichert nur Kategorie, Team-IDs, normalisierte Rollennamen und den
+  rollenabhängigen Offenfilter,
+- validiert Schema und Version, bereinigt ungültige Einzelwerte und gleicht
+  gespeicherte Werte gegen aktuelle Team- und Rollendaten ab,
+- behandelt fehlenden, gesperrten oder beschädigten Browser-Speicher ohne
+  Anwendungsabsturz und ohne technische Konsolenausgaben,
+- enthält keine personenbezogenen Daten und keinerlei Supabase-Zugriff.
 
 `src/services/authService.js`:
 
@@ -401,7 +433,9 @@ nach Reload oder Löschung.
 - `KPISection`: zeigt Heimspiele, offene Dienste, Helfereinträge und
   Mannschaften auf Basis desselben gefilterten Spielbestands wie die Liste.
 - `FilterBar`: feste Hierarchie aus Kategorie-Einfachauswahl, Team-,
-  Spieltag- und Rollen-Multiselect, optionalem Offenfilter und zentralem Reset.
+  Spieltag- und Rollen-Multiselect, optionalem Offenfilter und zentralem Reset
+  sowie zugängliche Aktionen zum lokalen Speichern und Löschen der
+  persönlichen Ansicht mit Status- und Fehlermeldungen.
 - `MatchdayCalendar`: kompakte öffentliche Monatsansicht mit
   Montag-bis-Sonntag-Raster, Monatsnavigation, Spieltagsmarkierungen,
   Heute-Kennzeichnung und zugänglicher Synchronisation mit derselben
@@ -889,4 +923,7 @@ geprüft dokumentiert.
   die bestehenden Spieltagsgruppen und den bestehenden Spieltagfilter.
 - **V24.0.7.3:** Sprint 9 ergänzt die Berlin-basierte Vergangenheitslogik und
   kaskadiert Kalender sowie Spieltagoptionen nach Kategorie und Mannschaft.
+- **V24.0.7.4:** Sprint 10 ergänzt lokale persönliche Dashboard-
+  Voreinstellungen für Kategorie, Teams, Rollen und Offenfilter ohne Konto
+  oder Supabase-Synchronisation.
 - **Später:** handball.net-Import; nicht Teil des aktuellen MVP.

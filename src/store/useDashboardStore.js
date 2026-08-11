@@ -5,11 +5,12 @@ import {
   filterDashboardGames,
   getAvailableRoleOptions,
   getAvailableTeams,
+  getRelevantMatchdayGroups,
+  getRelevantMatchdayOptions,
   normalizeRoleName,
   reconcileDashboardFilters,
   resetDashboardFilters
 } from '../utils/dashboardFilters'
-import { getMatchdayOptions } from '../utils/matchdays'
 import { getCalendarSelection } from '../utils/matchdayCalendar'
 
 export const useDashboardStore = create((set, get) => ({
@@ -108,7 +109,14 @@ export const useDashboardStore = create((set, get) => ({
     )
   }),
 
-  clearSelectedTeams: () => set({ selectedTeamIds: [] }),
+  clearSelectedTeams: () => set(state => reconcileDashboardFilters(
+    { ...state, selectedTeamIds: [] },
+    state.teams,
+    state.roles,
+    state.games
+  )),
+
+  setShowPastGames: enabled => set({ showPastGames: Boolean(enabled) }),
 
   toggleSelectedMatchday: (matchdayId, selected) => set(state => {
     const nextIds = new Set(state.selectedMatchdayIds)
@@ -174,7 +182,9 @@ export const useDashboardStore = create((set, get) => ({
     return getAvailableRoleOptions(roles, selectedCategory)
   },
 
-  getAvailableMatchdayOptions: () => getMatchdayOptions(get().games),
+  getAvailableMatchdayOptions: () => getRelevantMatchdayOptions(get()),
+
+  getRelevantMatchdayGroups: () => getRelevantMatchdayGroups(get()),
 
   getFilteredGames: () => filterDashboardGames(get())
 }))

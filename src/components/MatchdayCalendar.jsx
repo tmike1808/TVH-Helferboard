@@ -5,7 +5,7 @@ import {
   formatCalendarDate,
   formatCalendarMonth,
   getBerlinDateKey,
-  getCalendarMatchdayGroups,
+  getCurrentCalendarMonth,
   getInitialCalendarMonth,
   getSelectedCalendarDates,
   shiftCalendarMonth
@@ -16,12 +16,23 @@ const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 export default function MatchdayCalendar() {
   const {
     games,
+    teams,
+    selectedCategory,
+    selectedTeamIds,
     selectedMatchdayIds,
-    selectMatchdayFromCalendar
+    selectMatchdayFromCalendar,
+    getRelevantMatchdayGroups
   } = useDashboardStore()
   const matchdayGroups = useMemo(
-    () => getCalendarMatchdayGroups(games),
-    [games]
+    () => getRelevantMatchdayGroups()
+      .filter(group => group.startDate && group.endDate),
+    [
+      games,
+      teams,
+      selectedCategory,
+      selectedTeamIds,
+      getRelevantMatchdayGroups
+    ]
   )
   const [visibleMonth, setVisibleMonth] = useState(
     () => getInitialCalendarMonth([])
@@ -79,6 +90,10 @@ export default function MatchdayCalendar() {
     setVisibleMonth(current => shiftCalendarMonth(current, offset) ?? current)
   }
 
+  function showCurrentMonth() {
+    setVisibleMonth(getCurrentCalendarMonth())
+  }
+
   function selectCalendarMatchday(matchdayId) {
     skipNextSelectionMonthSync.current = true
     selectMatchdayFromCalendar(matchdayId)
@@ -120,6 +135,17 @@ export default function MatchdayCalendar() {
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#8B1E2D]"
           >
             <span aria-hidden="true" className="text-2xl leading-none">›</span>
+          </button>
+        </div>
+
+        <div className="mb-3 flex justify-center">
+          <button
+            type="button"
+            onClick={showCurrentMonth}
+            aria-label="Zum aktuellen Monat springen"
+            className="min-h-11 rounded-2xl border border-[#8B1E2D] px-5 text-sm font-black text-[#8B1E2D] outline-none hover:bg-rose-50 focus-visible:ring-2 focus-visible:ring-[#8B1E2D] focus-visible:ring-offset-2"
+          >
+            Heute
           </button>
         </div>
 

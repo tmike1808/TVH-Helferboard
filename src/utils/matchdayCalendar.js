@@ -1,4 +1,7 @@
-import { GAME_TIME_ZONE, getGameCalendarDay } from './formatDateTime.js'
+import {
+  GAME_TIME_ZONE,
+  getBerlinDateKey as getBerlinDateKeyFromValue
+} from './formatDateTime.js'
 import { createMatchdayGroups } from './matchdays.js'
 
 const MONTH_KEY_PATTERN = /^(\d{4})-(\d{2})$/
@@ -38,6 +41,10 @@ export function getInitialCalendarMonth(
   return lastGroup
     ? monthFromDateKey(lastGroup.startDate)
     : monthFromDateKey(today)
+}
+
+export function getCurrentCalendarMonth(now = new Date()) {
+  return getBerlinDateKey(now).slice(0, 7)
 }
 
 export function createCalendarMonth(monthKey, matchdayGroups) {
@@ -148,10 +155,10 @@ export function formatCalendarDate(dateKey) {
 }
 
 export function getBerlinDateKey(now = new Date()) {
-  const day = getGameCalendarDay(now)
+  const dateKey = getBerlinDateKeyFromValue(now)
 
-  if (day) {
-    return day.dateKey
+  if (dateKey) {
+    return dateKey
   }
 
   const fallback = new Intl.DateTimeFormat('en-CA', {

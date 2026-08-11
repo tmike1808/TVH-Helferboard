@@ -49,8 +49,8 @@ export function createMatchdayGroups(games, referenceGames = games) {
     .sort(compareMatchdayGroups)
 }
 
-export function getMatchdayOptions(games) {
-  return createMatchdayGroups(games).map(group => ({
+export function getMatchdayOptions(games, referenceGames = games) {
+  return createMatchdayGroups(games, referenceGames).map(group => ({
     value: group.id,
     label: group.label
   }))
@@ -93,9 +93,13 @@ export function formatMatchdayLabel(startDate, endDate = startDate) {
   return `${twoDigits(start.day)}.–${formatFullDate(end)}`
 }
 
-export function pruneSelectedMatchdayIds(selectedMatchdayIds, games) {
+export function pruneSelectedMatchdayIds(
+  selectedMatchdayIds,
+  games,
+  referenceGames = games
+) {
   const availableIds = new Set(
-    getMatchdayOptions(games).map(option => option.value)
+    getMatchdayOptions(games, referenceGames).map(option => option.value)
   )
 
   return uniqueStrings(selectedMatchdayIds)

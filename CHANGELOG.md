@@ -1,5 +1,18 @@
 # Changelog
 
+## V24.0.7.3 – Kalender-Kaskade und Vergangenheitslogik
+- Vergangene Spiele standardmäßig anhand des lokalen Kalendertags in `Europe/Berlin` aus Dashboardliste und KPIs ausgeblendet
+- Zugänglichen Filter „Vergangene Spiele anzeigen“ ergänzt; heutige Spiele bleiben unabhängig von ihrer Anwurfzeit den gesamten Tag sichtbar
+- Explizite Spieltagsauswahl über Kalender oder Multiselect als Vorrang vor dem normalen Vergangenheitsfilter umgesetzt
+- Kalender und Spieltag-Multiselect auf eine gemeinsame, von Kategorie und Mannschaften kaskadierte Spieltagsmenge umgestellt
+- Rollen-, Offen- und Vergangenheitsfilter bewusst ohne Einfluss auf Kalendermarkierungen gehalten
+- Ungültig gewordene Spieltagsauswahlen bei Kategorie- oder Teamänderungen automatisch entfernt, weiterhin gültige Auswahlen erhalten
+- Bestehende Samstag/Sonntag-Gruppen und IDs auch bei nur einem relevanten Spiel unverändert beibehalten
+- Filterreset, differenzierte Leerzustände und automatisierte Zeit-, Kaskaden-, Kombinations- und Zeitzonentests ergänzt
+- Browser-/Tab-Titel auf „TVH Dashboard“ vereinheitlicht
+- Zugänglichen Kalenderbutton „Heute“ ergänzt, der ausschließlich zum aktuellen Berliner Monat navigiert und sämtliche Filter unverändert lässt
+- Keine neue Abhängigkeit sowie keine Datenbank-, Migration-, RLS-, Policy-, Grant- oder Datenänderung vorgenommen
+
 ## V24.0.7.2 – Kalenderansicht für Spieltage
 - Kompakte, mobile Monatsansicht als zweite Bedienoberfläche für den bestehenden Spieltagfilter ergänzt
 - Vollständige Spieltagsgruppen, stabile IDs, Zeitraumlabels und Europe/Berlin-Logik ausschließlich aus den Sprint-6-Helpern wiederverwendet

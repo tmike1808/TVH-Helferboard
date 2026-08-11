@@ -6,6 +6,7 @@ import {
   getBerlinDateKey,
   getCalendarMatchdayGroups,
   getCalendarSelection,
+  getCurrentCalendarMonth,
   getInitialCalendarMonth,
   getMatchdayByDate,
   getSelectedCalendarDates,
@@ -56,6 +57,43 @@ test('Initialmonat fällt ohne zukünftigen Spieltag auf den letzten zurück', (
 test('Initialmonat ohne Spiele verwendet den aktuellen Berlin-Monat', () => {
   assert.equal(
     getInitialCalendarMonth([], new Date('2026-08-31T22:30:00Z')),
+    '2026-09'
+  )
+})
+
+test('Heute führt aus einem zukünftigen Monat zum aktuellen Berlin-Monat', () => {
+  const now = new Date('2026-08-11T12:00:00Z')
+  const visibleMonth = shiftCalendarMonth(getCurrentCalendarMonth(now), 4)
+
+  assert.equal(visibleMonth, '2026-12')
+  assert.equal(getCurrentCalendarMonth(now), '2026-08')
+})
+
+test('Heute führt aus einem vergangenen Monat zum aktuellen Berlin-Monat', () => {
+  const now = new Date('2026-08-11T12:00:00Z')
+  const visibleMonth = shiftCalendarMonth(getCurrentCalendarMonth(now), -4)
+
+  assert.equal(visibleMonth, '2026-04')
+  assert.equal(getCurrentCalendarMonth(now), '2026-08')
+})
+
+test('Heute berücksichtigt die Berliner Jahresgrenze', () => {
+  assert.equal(
+    getCurrentCalendarMonth(new Date('2026-12-31T23:30:00Z')),
+    '2027-01'
+  )
+})
+
+test('Heute funktioniert unabhängig von vorhandenen Spielen', () => {
+  assert.equal(
+    getCurrentCalendarMonth(new Date('2026-08-15T12:00:00Z')),
+    '2026-08'
+  )
+})
+
+test('Heute berücksichtigt die Berliner Tagesgrenze in der Sommerzeit', () => {
+  assert.equal(
+    getCurrentCalendarMonth(new Date('2026-08-31T22:30:00Z')),
     '2026-09'
   )
 })
@@ -121,7 +159,7 @@ test('bestehende Multiselect-Mehrfachauswahl bleibt unverändert abbildbar', () 
   ])
 })
 
-test('Kategorie-, Team- und Rollenfilter verändern Kalendergruppen nicht', () => {
+test('Dashboardfilter mutiert die vollständige Kalendergrundlage nicht', () => {
   const games = [
     game('active', '2026-08-29', 'active'),
     ...weekendGames.map(item => ({ ...item, team_id: 'youth' }))

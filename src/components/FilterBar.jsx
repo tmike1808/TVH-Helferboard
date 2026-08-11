@@ -5,12 +5,14 @@ export default function FilterBar() {
   const {
     selectedCategory,
     selectedTeamIds,
+    showPastGames,
     selectedMatchdayIds,
     selectedRoleNames,
     openSelectedRolesOnly,
     setSelectedCategory,
     toggleSelectedTeam,
     clearSelectedTeams,
+    setShowPastGames,
     toggleSelectedMatchday,
     clearSelectedMatchdays,
     toggleSelectedRole,
@@ -35,7 +37,7 @@ export default function FilterBar() {
       aria-label="Dashboard-Filter"
       className="mb-6 min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
     >
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <label className="min-w-0">
           <span className="mb-2 block text-sm font-bold text-slate-700">
             Kategorie
@@ -61,6 +63,23 @@ export default function FilterBar() {
           onChange={toggleSelectedTeam}
           onClear={clearSelectedTeams}
         />
+
+        <div className="min-w-0">
+          <div className="mb-2 text-sm font-bold text-slate-700">
+            Zeitraum
+          </div>
+          <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-800">
+            <input
+              type="checkbox"
+              checked={showPastGames}
+              onChange={event => setShowPastGames(event.target.checked)}
+              className="h-5 w-5 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span className="min-w-0 break-words text-sm font-bold leading-5">
+              Vergangene Spiele anzeigen
+            </span>
+          </label>
+        </div>
 
         <MultiSelectFilter
           label="Spieltage"
@@ -114,7 +133,7 @@ export default function FilterBar() {
         <button
           type="button"
           onClick={resetFilters}
-          className="min-h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 sm:col-span-2 xl:col-span-5"
+          className="min-h-12 w-full rounded-2xl border border-slate-300 px-5 font-bold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 sm:col-span-2 xl:col-span-6"
         >
           Filter zurücksetzen
         </button>

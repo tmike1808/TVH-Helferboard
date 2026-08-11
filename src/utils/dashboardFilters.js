@@ -1,7 +1,12 @@
 import {
+  createMatchdayGroups,
   getMatchdayIdByGameId,
   pruneSelectedMatchdayIds
 } from './matchdays.js'
+import {
+  getBerlinDateKey,
+  getGameCalendarDay
+} from './formatDateTime.js'
 import { getRoleStaffingStatus } from './staffingStatus.js'
 
 export const ALL_CATEGORIES = 'all'
@@ -39,6 +44,7 @@ const ROLE_PRIORITY_BY_CATEGORY = Object.freeze({
 export const INITIAL_DASHBOARD_FILTERS = Object.freeze({
   selectedCategory: ALL_CATEGORIES,
   selectedTeamIds: [],
+  showPastGames: false,
   selectedMatchdayIds: [],
   selectedRoleNames: [],
   openSelectedRolesOnly: false
@@ -147,32 +153,24 @@ export function isRoleOpen(role, assignmentCount) {
   return getRoleStaffingStatus(role, assignmentCount).openSlots > 0
 }
 
-export function filterDashboardGames({
+export function isGamePastInBerlin(startTime, now = new Date()) {
+  const gameDate = getGameCalendarDay(startTime)?.dateKey
+  const today = getBerlinDateKey(now)
+
+  return Boolean(gameDate && today && gameDate < today)
+}
+
+export function filterGamesByCategoryAndTeams({
   games,
   teams,
-  roles,
-  assignments,
   selectedCategory = ALL_CATEGORIES,
-  selectedTeamIds = [],
-  selectedMatchdayIds = [],
-  selectedRoleNames = [],
-  openSelectedRolesOnly = false
+  selectedTeamIds = []
 }) {
   const teamsById = new Map(
     (Array.isArray(teams) ? teams : []).map(team => [team.id, team])
   )
   const teamIds = new Set(uniqueStrings(selectedTeamIds))
-  const matchdayIds = new Set(uniqueStrings(selectedMatchdayIds))
-  const matchdayIdByGameId = matchdayIds.size > 0
-    ? getMatchdayIdByGameId(games)
-    : null
-  const roleNames = uniqueStrings(
-    (Array.isArray(selectedRoleNames) ? selectedRoleNames : [])
-      .map(normalizeRoleName)
-  )
   const hasTeamFilter = teamIds.size > 0
-  const hasMatchdayFilter = matchdayIds.size > 0
-  const hasRoleFilter = roleNames.length > 0
 
   return (Array.isArray(games) ? games : [])
     .filter(game => {
@@ -189,9 +187,75 @@ export function filterDashboardGames({
         return false
       }
 
-      if (hasTeamFilter && !teamIds.has(String(team.id))) {
-        return false
-      }
+      return !hasTeamFilter || teamIds.has(String(team.id))
+    })
+    .sort(compareGamesByStartTime)
+}
+
+export function getRelevantMatchdayGroups(filters) {
+  const games = Array.isArray(filters?.games) ? filters.games : []
+  const relevantGames = filterGamesByCategoryAndTeams(filters ?? {})
+  return createMatchdayGroups(relevantGames, games)
+}
+
+export function getRelevantMatchdayOptions(filters) {
+  return getRelevantMatchdayGroups(filters).map(group => ({
+    value: group.id,
+    label: group.label
+  }))
+}
+
+export function filterGamesByDashboardTime({
+  games,
+  showPastGames = false,
+  selectedMatchdayIds = [],
+  now = new Date()
+}) {
+  const visibleGames = Array.isArray(games) ? games : []
+
+  if (showPastGames || uniqueStrings(selectedMatchdayIds).length > 0) {
+    return visibleGames
+  }
+
+  return visibleGames.filter(game => !isGamePastInBerlin(game?.start_time, now))
+}
+
+export function filterDashboardGames({
+  games,
+  teams,
+  roles,
+  assignments,
+  selectedCategory = ALL_CATEGORIES,
+  selectedTeamIds = [],
+  showPastGames = false,
+  selectedMatchdayIds = [],
+  selectedRoleNames = [],
+  openSelectedRolesOnly = false,
+  now = new Date()
+}) {
+  const teamsById = new Map(
+    (Array.isArray(teams) ? teams : []).map(team => [team.id, team])
+  )
+  const matchdayIds = new Set(uniqueStrings(selectedMatchdayIds))
+  const matchdayIdByGameId = matchdayIds.size > 0
+    ? getMatchdayIdByGameId(games)
+    : null
+  const roleNames = uniqueStrings(
+    (Array.isArray(selectedRoleNames) ? selectedRoleNames : [])
+      .map(normalizeRoleName)
+  )
+  const hasMatchdayFilter = matchdayIds.size > 0
+  const hasRoleFilter = roleNames.length > 0
+  const categoryAndTeamGames = filterGamesByCategoryAndTeams({
+    games,
+    teams,
+    selectedCategory,
+    selectedTeamIds
+  })
+
+  const filteredGames = categoryAndTeamGames
+    .filter(game => {
+      const team = teamsById.get(game?.team_id)
 
       if (
         hasMatchdayFilter
@@ -223,6 +287,13 @@ export function filterDashboardGames({
         countRoleAssignments(assignments, game.id, role.id)
       ))
     })
+
+  return filterGamesByDashboardTime({
+    games: filteredGames,
+    showPastGames,
+    selectedMatchdayIds,
+    now
+  })
     .sort(compareGamesByStartTime)
 }
 
@@ -265,6 +336,7 @@ export function resetDashboardFilters() {
   return {
     selectedCategory: ALL_CATEGORIES,
     selectedTeamIds: [],
+    showPastGames: false,
     selectedMatchdayIds: [],
     selectedRoleNames: [],
     openSelectedRolesOnly: false
@@ -283,14 +355,22 @@ export function reconcileDashboardFilters(filters, teams, roles, games = []) {
     filters?.selectedRoleNames ?? [],
     availableRoles
   )
+  const relevantGames = filterGamesByCategoryAndTeams({
+    games,
+    teams,
+    selectedCategory,
+    selectedTeamIds
+  })
   const selectedMatchdayIds = pruneSelectedMatchdayIds(
     filters?.selectedMatchdayIds ?? [],
+    relevantGames,
     games
   )
 
   return {
     selectedCategory,
     selectedTeamIds,
+    showPastGames: Boolean(filters?.showPastGames),
     selectedMatchdayIds,
     selectedRoleNames,
     openSelectedRolesOnly:

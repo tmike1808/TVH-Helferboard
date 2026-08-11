@@ -27,6 +27,8 @@ export default function App() {
 
   const {
     games,
+    showPastGames,
+    selectedMatchdayIds,
     loadData,
     getFilteredGames
   } = useDashboardStore()
@@ -148,7 +150,9 @@ export default function App() {
                   className="rounded-3xl border border-slate-200 bg-white p-8 text-center font-bold text-slate-600 shadow-sm"
                   role="status"
                 >
-                  Keine Spiele entsprechen den ausgewählten Filtern.
+                  {selectedMatchdayIds.length === 0 && !showPastGames
+                    ? 'Keine aktuellen oder kommenden Spiele entsprechen den ausgewählten Filtern.'
+                    : 'Keine Spiele entsprechen den ausgewählten Filtern.'}
                 </div>
               )}
             </div>

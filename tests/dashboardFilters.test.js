@@ -287,6 +287,7 @@ test('30. vollständiger Filterreset liefert exakt den Ausgangszustand', () => {
   assert.deepEqual(resetDashboardFilters(), {
     selectedCategory: 'all',
     selectedTeamIds: [],
+    showPastGames: false,
     selectedMatchdayIds: [],
     selectedRoleNames: [],
     openSelectedRolesOnly: false
@@ -331,6 +332,7 @@ test('33. Reconciliation bereinigt Teams, Rollen und wirkungslosen Offenfilter',
   assert.deepEqual(result, {
     selectedCategory: 'Jugend',
     selectedTeamIds: ['md1'],
+    showPastGames: false,
     selectedMatchdayIds: [],
     selectedRoleNames: [],
     openSelectedRolesOnly: false

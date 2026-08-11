@@ -57,6 +57,10 @@ export function getGameCalendarDay(startTime) {
   }
 }
 
+export function getBerlinDateKey(value = new Date()) {
+  return getGameCalendarDay(value)?.dateKey ?? null
+}
+
 export function formatGameDate(startTime) {
   const value = parseGameStartTime(startTime)
   return value ? dateFormatter.format(value) : '–'

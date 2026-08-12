@@ -1,5 +1,16 @@
 # Changelog
 
+## V24.0.7.5 – Filterbasierter XLSX-Helferexport
+- Öffentlichen, vollständig clientseitigen XLSX-Export für exakt den aktuell gefilterten Dashboard-Spielbestand ergänzt
+- Feste 13-spaltige Helferplanstruktur mit dynamischer Rollenmatrix, `FREI` je offenem Slot und `-` für kategoriefremde Rollen umgesetzt
+- Slotbasierte Ausgabe bewusst von `minimum_staff` getrennt und Helfernamen deterministisch nach `created_at` beziehungsweise stabiler Bestandsreihenfolge angeordnet
+- Arbeitsmappe mit hervorgehobener und eingefrorener Kopfzeile, angepassten Spaltenbreiten, Zeilenumbruch und mehrzeiligen Rollenfeldern formatiert
+- Exportaktion mit Leer-, Lade-, Erfolgs- und Fehlerzustand sowie synchronem Schutz gegen Mehrfachauslösung im Filter-/Kalenderbereich ergänzt
+- MIT-lizenzierte, browserfähige Schreibbibliothek `write-excel-file 4.1.1` nach Sicherheitsprüfung ergänzt; keine neue hohe oder kritische Schwachstelle eingeführt
+- MatchCard-Aktionen auf zugängliche 40×40-Pixel-Buttons mit ✓/× verdichtet und mehr Platz für Helfernamen geschaffen
+- 34 automatisierte Exportmodell-, Slot-, Matrix-, Filterbasis-, Dateinamen-, Leerzustands- und Arbeitsmappentests ergänzt
+- Keine Supabase-, Datenbank-, Migration-, RLS-, Policy-, Grant- oder produktive Datenänderung vorgenommen
+
 ## V24.0.7.4 – Persönliche Dashboard-Voreinstellungen
 - Lokale, versionierte Speicherung der persönlichen Dashboard-Ansicht ohne Benutzerkonto ergänzt
 - Ausschließlich Kategorie, Mannschaften, Helferrollen und der zugehörige Offenfilter werden im Browser gespeichert

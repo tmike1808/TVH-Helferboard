@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
-Stand dieser Bestandsaufnahme: 11. August 2026. Grundlage ist der Commit
-`d79ff1e` (`V24.0.7.3 Sprint 9: Kalender-Kaskade und Vergangenheitslogik`)
-sowie der noch nicht committete Arbeitsstand von Sprint 10.
+Stand dieser Bestandsaufnahme: 12. August 2026. Grundlage ist der Commit
+`737210e` (`V24.0.7.4 Sprint 10: Persönliche Dashboard-Voreinstellungen`)
+sowie der noch nicht committete Arbeitsstand von Sprint 11.
 
 ## 1. Projektziel
 
@@ -49,6 +49,12 @@ der zugehörige Offenfilter. Vergangenheitsansicht, Spieltagsauswahl und
 sichtbarer Kalendermonat bleiben temporär und starten nach einem vollständigen
 Neuladen im Standardzustand. Es gibt weiterhin keine Helfer-Benutzerkonten und
 keine Synchronisation persönlicher Einstellungen mit Supabase.
+Sprint 11 ergänzt einen öffentlichen, vollständig clientseitigen XLSX-
+Helferexport für exakt den aktuell gefilterten Spielbestand. Jede Datei besitzt
+13 feste Spalten, bildet die dynamisch zur Spielkategorie gehörenden Rollen mit
+allen `slots` ab und kennzeichnet offene Plätze mit `FREI`. Nicht vorgesehene
+Rollen werden mit `-` ausgegeben. Es entstehen weder ein zusätzlicher
+Supabase-Zugriff noch eine serverseitige Speicherung.
 
 ## 2. Technischer Ist-Zustand
 
@@ -69,6 +75,7 @@ Das Projekt ist eine JavaScript-Single-Page-Anwendung ohne TypeScript und ohne R
 | Autoprefixer | `autoprefixer ^10.4.20` | `10.5.4` |
 | Lucide React | `lucide-react ^0.511.0` | `0.511.0` |
 | Excel-Leser | `read-excel-file ^9.3.4` | `9.3.4` |
+| Excel-Schreiber | `write-excel-file ^4.1.1` | `4.1.1` |
 
 Das Lockfile verwendet Lockfile-Version 3. Für die Bestandsprüfung standen Node.js `24.15.0` und npm `11.12.1` zur Verfügung. Das Repository definiert keine unterstützte Node-/npm-Version über `engines`, `.nvmrc` oder eine vergleichbare Datei.
 
@@ -207,6 +214,10 @@ Dokumenttitel wird zusätzlich durch `tests/documentTitle.test.js` abgesichert.
 Sprint 10 ergänzt `src/services/dashboardPreferences.js`,
 `tests/dashboardPreferences.test.js` und den Report
 `reports/V24.0.7.4-Sprint-10-Preferences.md`.
+Sprint 11 ergänzt `src/components/DashboardExportButton.jsx`,
+`src/services/dashboardExport.js`, `src/utils/dashboardExportModel.js`,
+`tests/dashboardExportModel.test.js` und den Report
+`reports/V24.0.7.5-Sprint-11-XLSX-Export.md`.
 
 ### Zustandsverwaltung
 
@@ -313,13 +324,26 @@ SELECT auf allen vier öffentlich gelesenen Tabellen; deren SELECT-Policies
 umfassen jeweils beide Rollen mit `USING (true)`. Damit entspricht der
 Remote-Berechtigungsstand der Basismigration, und eine zusätzliche
 Berechtigungsmigration ist nicht erforderlich. Die synchronisierte Prüfung
-ergab 0 statt der zuvor im Testbetrieb vorhandenen 10 `helper_assignments`.
-Warum diese Testzuordnungen nicht mehr vorhanden sind, ist ohne Audit-Historie
-rückwirkend nicht belastbar bestimmbar. Der aktuelle Stand mit 0
-Helferzuordnungen ist für den weiteren Testbetrieb fachlich akzeptiert; echte
-Saison-Helferdaten müssen nicht wiederhergestellt werden.
+ergab damals 0 statt der zuvor im Testbetrieb vorhandenen 10
+`helper_assignments`. Die rein lesende Sprint-11-Abnahme ergab aktuell einen
+Helfereintrag. Im Rahmen von Sprint 11 wurde keine Zuordnung erzeugt, verändert
+oder gelöscht.
 
 ### Services
+
+`src/services/dashboardExport.js`:
+
+- erzeugt die Arbeitsmappe ausschließlich aus bereits geladenen Dashboarddaten,
+- lädt `write-excel-file/browser` erst beim ausdrücklichen Exportklick,
+- formatiert Kopfzeile, Spaltenbreiten, Zeilenumbruch, Zeilenhöhen und
+  vertikale Ausrichtung und friert die erste Zeile ein,
+- löst den lokalen Download mit einem Berlin-basierten Dateinamen aus,
+- enthält keinen Supabase-, Storage-, Server-, Logging- oder Telemetriezugriff.
+
+`src/utils/dashboardExportModel.js` kapselt die feste 13-spaltige Struktur,
+chronologische Spielsortierung, Berlin-Datum/-Zeit, dynamische Rollenauflösung
+nach `helper_roles.category`, slotbasierte `FREI`-Zeilen, `-` für nicht
+vorgesehene Rollen, deterministische Helferreihenfolge und Dateinamenbildung.
 
 `src/services/dashboardPreferences.js`:
 
@@ -436,6 +460,9 @@ nach Reload oder Löschung.
   Spieltag- und Rollen-Multiselect, optionalem Offenfilter und zentralem Reset
   sowie zugängliche Aktionen zum lokalen Speichern und Löschen der
   persönlichen Ansicht mit Status- und Fehlermeldungen.
+- `DashboardExportButton`: öffentliche, zugängliche XLSX-Aktion für exakt die
+  von `App` übergebenen `filteredGames`; bei null Spielen deaktiviert, während
+  der asynchronen Erzeugung gesperrt und mit verständlichem Status versehen.
 - `MatchdayCalendar`: kompakte öffentliche Monatsansicht mit
   Montag-bis-Sonntag-Raster, Monatsnavigation, Spieltagsmarkierungen,
   Heute-Kennzeichnung und zugänglicher Synchronisation mit derselben
@@ -445,7 +472,8 @@ nach Reload oder Löschung.
   Tastaturbedienung und sichtbaren Fokuszuständen.
 - `MatchCard`: aufklappbare Spielkarte, dynamische Rollenanzeige, textlich
   unterscheidbaren Mindest-/Durchführbarkeits-/Vollstatus sowie Ein- und
-  Austragen von Helfern.
+  Austragen von Helfern. Die Aktionen verwenden kompakte, zugängliche
+  40×40-Pixel-Buttons mit ✓ und ×, damit Helfernamen mehr Breite erhalten.
 - `AdminGamesPage`: erreichbare Spieleverwaltung mit lokalem Lade-, Fehler-,
   Leer-, Formular-, Speicher-, Auswahl-, Einzel-/Sammellösch- und
   Meldungszustand; aktualisiert nach Mutationen Adminliste und Dashboard-Store.
@@ -472,6 +500,18 @@ nach Reload oder Löschung.
 
 ### Aktuell implementierte Funktionen
 
+- Öffentlicher XLSX-Export exakt des von `getFilteredGames()` gelieferten,
+  aktuell sichtbaren Spielbestands ohne zweite Export-Filterlogik.
+- Feste Exportspalten `Datum`, `Zeit`, `Heim`, `Gegner`, `Zeitnehmer`,
+  `Sekretär`, `Schiri`, `Wischer`, `Ordner`, `Verkauf`, `Kuchen`,
+  `Brezeln / Sonstiges` und `Trikots`.
+- Eine chronologische Zeile pro Spiel mit lokalem Berlin-Datum/-Zeit,
+  sichtbarem TVH-Team und Gegner.
+- Dynamische Rollenmatrix aus `helper_roles`: vorhandene Rollen enthalten je
+  vorgesehenem `slot` einen Helfernamen oder `FREI`; kategoriefremde Rollen
+  enthalten exakt `-`. `minimum_staff` verkürzt die Slotdarstellung nicht.
+- Clientseitige XLSX-Erzeugung nur nach ausdrücklichem Klick, ohne Upload,
+  Serverablage, Telemetrie oder Protokollierung von Helfernamen.
 - Laden von Spielen, Teams, Helferrollen und Helferzuordnungen aus Supabase.
 - Anzeige und Aufklappen von MatchCards.
 - Dynamische Spieltagsgruppen aus `start_time` in lokaler deutscher Zeit;
@@ -612,7 +652,7 @@ wieder entfernt.
 - Beim Austragen gibt es keine Bestätigung und keinen Besitznachweis. Die DB-0-Policy muss deshalb für die öffentliche Austragefunktion derzeit das Löschen jeder sichtbaren Zuordnung anhand ihrer ID erlauben.
 - Die DB-0-Migration verhindert namensgleiche Doppeleinträge je Spiel und Rolle ohne Beachtung der Groß-/Kleinschreibung. Eine konkurrierende Überbuchung über `helper_roles.slots` wird weiterhin nicht serverseitig verhindert.
 - Das Dashboard besitzt weiterhin keine eigene Lade-, Leer-, Netzwerkfehler- oder Wiederholungsansicht; die Admin-Spieleübersicht behandelt Laden, Fehler und leere Daten.
-- 148 automatisierte Tests decken unter anderem Dashboardfilter,
+- 220 automatisierte Tests decken unter anderem Dashboardfilter,
   Berlin-basierte Vergangenheitslogik, Kalender-Kaskade, Spieltagsbildung,
   Kalender-Monatsmatrix und -Auswahl, Rollenpriorisierung, Mindestbesetzung,
   KPI-/Offenstatus, Excel-Parser und Importworkflow ab. Für das Spiele-CRUD
@@ -765,7 +805,8 @@ Sprint 4 zusätzlich auf echter Smartphone-Hardware geprüft.
 - Benutzerkonten für Helfer.
 - Komplexe Rechteverwaltung.
 - Statistiken und Historie.
-- Exporte.
+- PDF- und weitere Exportformate; der filterbasierte XLSX-Helferexport ist in
+  Sprint 11 umgesetzt.
 
 ## Release-Backlog vor Saisonstart
 
@@ -926,4 +967,7 @@ geprüft dokumentiert.
 - **V24.0.7.4:** Sprint 10 ergänzt lokale persönliche Dashboard-
   Voreinstellungen für Kategorie, Teams, Rollen und Offenfilter ohne Konto
   oder Supabase-Synchronisation.
+- **V24.0.7.5:** Sprint 11 ergänzt den filterbasierten, vollständig
+  clientseitigen XLSX-Helferexport und die kompakten ✓/×-Aktionen der
+  MatchCards.
 - **Später:** handball.net-Import; nicht Teil des aktuellen MVP.

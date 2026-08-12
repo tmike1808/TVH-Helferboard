@@ -162,7 +162,7 @@ function RoleCard({
   return (
     <div
       className={
-        "min-w-0 rounded-2xl border-2 p-4 " +
+        "min-w-0 rounded-2xl border-2 p-3 min-[380px]:p-2 sm:p-4 " +
         (viable
           ? "border-emerald-500"
           : "border-orange-400")
@@ -187,10 +187,10 @@ function RoleCard({
         {helpers.map(helper => (
           <div
             key={helper.id}
-            className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold"
+            className="flex min-w-0 items-center gap-1 rounded-xl bg-slate-100 px-1.5 py-2 text-sm font-bold"
           >
 
-            <span className="min-w-0 break-words">
+            <span className="min-w-0 flex-1 break-words leading-5">
               {helper.helper_name}
             </span>
 
@@ -198,9 +198,9 @@ function RoleCard({
               type="button"
               onClick={() => handleRemove(helper.id)}
               aria-label={`${helper.helper_name} austragen`}
-              className="min-h-10 shrink-0 rounded-xl bg-red-600 px-3 text-xs font-black text-white hover:bg-red-700"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-2xl font-bold leading-none text-white outline-none hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
             >
-              Austragen
+              <span aria-hidden="true">×</span>
             </button>
 
           </div>
@@ -209,7 +209,7 @@ function RoleCard({
       </div>
 
       {open && (
-        <div className="space-y-2 mt-3">
+        <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_2.5rem] items-center gap-1.5">
 
           <input
             value={name}
@@ -222,9 +222,13 @@ function RoleCard({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="h-12 w-full rounded-xl bg-emerald-600 text-white font-bold disabled:cursor-wait disabled:bg-emerald-400"
+            aria-label={saving
+              ? 'Helfereintrag wird gespeichert'
+              : 'Als Helfer eintragen'}
+            aria-busy={saving}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-2xl font-bold leading-none text-white outline-none hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:bg-emerald-400"
           >
-            {saving ? 'Speichert...' : 'Eintragen'}
+            <span aria-hidden="true">{saving ? '…' : '✓'}</span>
           </button>
 
         </div>

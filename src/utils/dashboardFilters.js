@@ -16,8 +16,9 @@ const ROLE_PRIORITY_BY_CATEGORY = Object.freeze({
     'zeitnehmer',
     'sekretär',
     'wischer',
-    'ordner',
-    'verkauf'
+    'kasse eintritt',
+    'verkauf',
+    'ordner'
   ]),
   Jugend: Object.freeze([
     'zeitnehmer',
@@ -33,8 +34,9 @@ const ROLE_PRIORITY_BY_CATEGORY = Object.freeze({
     'sekretär',
     'schiri',
     'wischer',
-    'ordner',
+    'kasse eintritt',
     'verkauf',
+    'ordner',
     'kuchen',
     'brezeln / sonstiges',
     'trikots'

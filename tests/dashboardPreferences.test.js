@@ -23,6 +23,7 @@ const roles = [
   { id: 'a-time', name: 'Zeitnehmer', category: 'Aktive' },
   { id: 'a-secretary', name: 'Sekretär', category: 'Aktive' },
   { id: 'a-wipe', name: 'Wischer', category: 'Aktive' },
+  { id: 'a-ticket-desk', name: 'Kasse Eintritt', category: 'Aktive' },
   { id: 'j-time', name: 'Zeitnehmer', category: 'Jugend' },
   { id: 'j-secretary', name: 'Sekretär', category: 'Jugend' },
   { id: 'j-cake', name: 'Kuchen', category: 'Jugend' }
@@ -412,4 +413,20 @@ test('38. Schreibfehler besitzt eine verständliche UI-Meldung', () => {
     dashboardStore,
     /Meine Ansicht konnte in diesem Browser nicht gespeichert werden\./
   )
+})
+
+test('39. neue dynamische Rolle durchläuft Speichern und Auflösen', () => {
+  const storage = createMemoryStorage()
+  saveDashboardPreferences(fullFilters({
+    selectedCategory: 'Aktive',
+    selectedRoleNames: ['Kasse Eintritt'],
+    openSelectedRolesOnly: true
+  }), storage)
+
+  const saved = readDashboardPreferences(storage).preferences
+  const resolved = resolveDashboardPreferences(saved, teams, roles)
+
+  assert.deepEqual(saved.roleNames, ['kasse eintritt'])
+  assert.deepEqual(resolved.selectedRoleNames, ['kasse eintritt'])
+  assert.equal(resolved.openSelectedRolesOnly, true)
 })

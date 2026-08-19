@@ -1,8 +1,8 @@
 # TVH Helfer Dashboard
 
-Stand dieser Bestandsaufnahme: 12. August 2026. Grundlage ist der Commit
-`737210e` (`V24.0.7.4 Sprint 10: Persönliche Dashboard-Voreinstellungen`)
-sowie der noch nicht committete Arbeitsstand von Sprint 11.
+Stand dieser Bestandsaufnahme: 19. August 2026. Grundlage ist der Commit
+`674e5f4` (`feat: add filtered XLSX helper export`) sowie der noch nicht
+committete Arbeitsstand von V24.0.7.6.
 
 ## 1. Projektziel
 
@@ -49,12 +49,16 @@ der zugehörige Offenfilter. Vergangenheitsansicht, Spieltagsauswahl und
 sichtbarer Kalendermonat bleiben temporär und starten nach einem vollständigen
 Neuladen im Standardzustand. Es gibt weiterhin keine Helfer-Benutzerkonten und
 keine Synchronisation persönlicher Einstellungen mit Supabase.
-Sprint 11 ergänzt einen öffentlichen, vollständig clientseitigen XLSX-
-Helferexport für exakt den aktuell gefilterten Spielbestand. Jede Datei besitzt
-13 feste Spalten, bildet die dynamisch zur Spielkategorie gehörenden Rollen mit
-allen `slots` ab und kennzeichnet offene Plätze mit `FREI`. Nicht vorgesehene
-Rollen werden mit `-` ausgegeben. Es entstehen weder ein zusätzlicher
-Supabase-Zugriff noch eine serverseitige Speicherung.
+Sprint 11 ergänzt einen vollständig clientseitigen XLSX-Helferexport für exakt
+den aktuell gefilterten Spielbestand. V24.0.7.6 entfernt die öffentliche
+Exportaktion vorläufig aus `App.jsx`; Komponente, Service, Modell, Abhängigkeit
+und Tests bleiben unverändert erhalten. Das eingefrorene Exportmodell besitzt
+weiterhin 13 Spalten und enthält die neue Rolle `Kasse Eintritt` bewusst noch
+nicht. Vor einer späteren Reaktivierung muss es fachlich erweitert und erneut
+vollständig auf Datenschutz, Berechtigungen und Funktion geprüft werden.
+V24.0.7.6 bereitet außerdem `Kasse Eintritt` als sechste Aktive-Rolle mit zwei
+Slots und einer Mindestbesetzung von eins vor. Die zugehörige Remote-Migration
+ist noch nicht angewendet.
 
 ## 2. Technischer Ist-Zustand
 
@@ -218,6 +222,10 @@ Sprint 11 ergänzt `src/components/DashboardExportButton.jsx`,
 `src/services/dashboardExport.js`, `src/utils/dashboardExportModel.js`,
 `tests/dashboardExportModel.test.js` und den Report
 `reports/V24.0.7.5-Sprint-11-XLSX-Export.md`.
+V24.0.7.6 ergänzt die noch nicht remote angewendete Datenmigration
+`supabase/migrations/20260819000100_add_active_ticket_desk_role.sql`, den Test
+`tests/activeTicketDeskRole.test.js` und den Report
+`reports/V24.0.7.6-Active-Ticket-Desk-Role.md`.
 
 ### Zustandsverwaltung
 
@@ -323,11 +331,10 @@ Die nachgelagerte Sprint-5-Blockerprüfung bestätigte remote für `anon` und
 SELECT auf allen vier öffentlich gelesenen Tabellen; deren SELECT-Policies
 umfassen jeweils beide Rollen mit `USING (true)`. Damit entspricht der
 Remote-Berechtigungsstand der Basismigration, und eine zusätzliche
-Berechtigungsmigration ist nicht erforderlich. Die synchronisierte Prüfung
-ergab damals 0 statt der zuvor im Testbetrieb vorhandenen 10
-`helper_assignments`. Die rein lesende Sprint-11-Abnahme ergab aktuell einen
-Helfereintrag. Im Rahmen von Sprint 11 wurde keine Zuordnung erzeugt, verändert
-oder gelöscht.
+Berechtigungsmigration ist nicht erforderlich. Die rein lesende Prüfung am
+19. August 2026 ergab 10 `helper_assignments`; es wurden dabei ausschließlich
+Anzahlen und keine Helfernamen ausgelesen. Im Rahmen von V24.0.7.6 wurde keine
+Zuordnung erzeugt, verändert oder gelöscht.
 
 ### Services
 
@@ -344,6 +351,9 @@ oder gelöscht.
 chronologische Spielsortierung, Berlin-Datum/-Zeit, dynamische Rollenauflösung
 nach `helper_roles.category`, slotbasierte `FREI`-Zeilen, `-` für nicht
 vorgesehene Rollen, deterministische Helferreihenfolge und Dateinamenbildung.
+Die Implementierung ist in V24.0.7.6 vollständig erhalten, wird aber von
+`App.jsx` vorläufig nicht mehr öffentlich gerendert. Sie bleibt auf dem
+V24.0.7.5-Stand ohne Spalte `Kasse Eintritt` eingefroren.
 
 `src/services/dashboardPreferences.js`:
 
@@ -460,9 +470,9 @@ nach Reload oder Löschung.
   Spieltag- und Rollen-Multiselect, optionalem Offenfilter und zentralem Reset
   sowie zugängliche Aktionen zum lokalen Speichern und Löschen der
   persönlichen Ansicht mit Status- und Fehlermeldungen.
-- `DashboardExportButton`: öffentliche, zugängliche XLSX-Aktion für exakt die
-  von `App` übergebenen `filteredGames`; bei null Spielen deaktiviert, während
-  der asynchronen Erzeugung gesperrt und mit verständlichem Status versehen.
+- `DashboardExportButton`: erhaltene, zugängliche XLSX-Komponente für exakt
+  übergebene Spiele; in V24.0.7.6 vorläufig nicht mehr von `App` importiert
+  oder im öffentlichen Dashboard gerendert.
 - `MatchdayCalendar`: kompakte öffentliche Monatsansicht mit
   Montag-bis-Sonntag-Raster, Monatsnavigation, Spieltagsmarkierungen,
   Heute-Kennzeichnung und zugänglicher Synchronisation mit derselben
@@ -500,18 +510,22 @@ nach Reload oder Löschung.
 
 ### Aktuell implementierte Funktionen
 
-- Öffentlicher XLSX-Export exakt des von `getFilteredGames()` gelieferten,
-  aktuell sichtbaren Spielbestands ohne zweite Export-Filterlogik.
-- Feste Exportspalten `Datum`, `Zeit`, `Heim`, `Gegner`, `Zeitnehmer`,
+- Vorläufig keine öffentliche XLSX-Aktion im Dashboard. Der erhaltene,
+  clientseitige Exportcode verwendet weiterhin exakt den von
+  `getFilteredGames()` gelieferten Spielbestand ohne zweite Filterlogik.
+- Das eingefrorene Modell besitzt weiterhin die festen Exportspalten `Datum`,
+  `Zeit`, `Heim`, `Gegner`, `Zeitnehmer`,
   `Sekretär`, `Schiri`, `Wischer`, `Ordner`, `Verkauf`, `Kuchen`,
-  `Brezeln / Sonstiges` und `Trikots`.
+  `Brezeln / Sonstiges` und `Trikots`; `Kasse Eintritt` ist noch nicht
+  enthalten.
 - Eine chronologische Zeile pro Spiel mit lokalem Berlin-Datum/-Zeit,
   sichtbarem TVH-Team und Gegner.
 - Dynamische Rollenmatrix aus `helper_roles`: vorhandene Rollen enthalten je
   vorgesehenem `slot` einen Helfernamen oder `FREI`; kategoriefremde Rollen
   enthalten exakt `-`. `minimum_staff` verkürzt die Slotdarstellung nicht.
-- Clientseitige XLSX-Erzeugung nur nach ausdrücklichem Klick, ohne Upload,
-  Serverablage, Telemetrie oder Protokollierung von Helfernamen.
+- Die erhaltene clientseitige XLSX-Erzeugung arbeitet ohne Upload,
+  Serverablage, Telemetrie oder Protokollierung von Helfernamen; sie ist
+  öffentlich derzeit nicht auslösbar.
 - Laden von Spielen, Teams, Helferrollen und Helferzuordnungen aus Supabase.
 - Anzeige und Aufklappen von MatchCards.
 - Dynamische Spieltagsgruppen aus `start_time` in lokaler deutscher Zeit;
@@ -747,8 +761,9 @@ sie nur die Rolle `authenticated`.
   1. Zeitnehmer – 1 Platz
   2. Sekretär – 1 Platz
   3. Wischer – 2 Plätze
-  4. Verkauf – 4 Plätze
-  5. Ordner – 4 Plätze
+  4. Kasse Eintritt – 2 Plätze
+  5. Verkauf – 4 Plätze
+  6. Ordner – 4 Plätze
 - Die fachlich vorgesehene Reihenfolge für **Jugend** ist:
   1. Zeitnehmer – 1 Platz
   2. Sekretär – 1 Platz
@@ -765,12 +780,13 @@ sie nur die Rolle `authenticated`.
 
 Die Farblogik und Sortierung sind im Code umgesetzt. Die Datenmigration aus
 Sprint 1C.1 aktualisiert bestehende Projekte auf diese offiziellen Werte; der
-Seed enthält dieselben Werte für neue Datenbanken. Die Gesamtbedarfe betragen
-12 Plätze für Aktive und 10 Plätze für Jugend.
+Seed enthält dieselben Werte für neue Datenbanken. Nach Anwendung der noch
+ausstehenden V24.0.7.6-Migration betragen die Gesamtbedarfe 14 Plätze für
+Aktive und 10 Plätze für Jugend.
 
 Für Aktive/Verkauf und Aktive/Ordner gilt `minimum_staff = 3` bei
-`slots = 4`. Für alle anderen Rollen entspricht `minimum_staff` exakt
-`slots`.
+`slots = 4`. Für Aktive/Kasse Eintritt gilt `minimum_staff = 1` bei
+`slots = 2`. Für alle anderen Rollen entspricht `minimum_staff` exakt `slots`.
 
 ## 5. Eingefrorener MVP-Umfang
 
@@ -806,7 +822,8 @@ Sprint 4 zusätzlich auf echter Smartphone-Hardware geprüft.
 - Komplexe Rechteverwaltung.
 - Statistiken und Historie.
 - PDF- und weitere Exportformate; der filterbasierte XLSX-Helferexport ist in
-  Sprint 11 umgesetzt.
+  Sprint 11 implementiert, seit V24.0.7.6 öffentlich aber vorläufig
+  deaktiviert.
 
 ## Release-Backlog vor Saisonstart
 
@@ -970,4 +987,8 @@ geprüft dokumentiert.
 - **V24.0.7.5:** Sprint 11 ergänzt den filterbasierten, vollständig
   clientseitigen XLSX-Helferexport und die kompakten ✓/×-Aktionen der
   MatchCards.
+- **V24.0.7.6:** ergänzt die Aktive-Rolle `Kasse Eintritt` in Migration,
+  Seed, dynamischer Anzeige und Filterung; die öffentliche XLSX-Aktion wird
+  bis zu einer späteren fachlichen Erweiterung und vollständigen Neuprüfung
+  vorläufig ausgeblendet.
 - **Später:** handball.net-Import; nicht Teil des aktuellen MVP.

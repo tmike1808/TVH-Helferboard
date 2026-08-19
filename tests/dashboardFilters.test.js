@@ -31,6 +31,7 @@ const roles = [
   ['a-time', 'Zeitnehmer', 'Aktive', 1],
   ['a-secretary', 'Sekretär', 'Aktive', 1],
   ['a-wipe', 'Wischer', 'Aktive', 2],
+  ['a-ticket-desk', 'Kasse Eintritt', 'Aktive', 2, 1],
   ['a-sale', 'Verkauf', 'Aktive', 4],
   ['a-order', 'Ordner', 'Aktive', 4],
   ['j-time', 'Zeitnehmer', 'Jugend', 1],
@@ -40,7 +41,13 @@ const roles = [
   ['j-cake', 'Kuchen', 'Jugend', 3],
   ['j-pretzel', 'Brezeln / Sonstiges', 'Jugend', 1],
   ['j-shirts', 'Trikots', 'Jugend', 1]
-].map(([id, name, category, slots]) => ({ id, name, category, slots }))
+].map(([id, name, category, slots, minimum_staff]) => ({
+  id,
+  name,
+  category,
+  slots,
+  minimum_staff
+}))
 
 const games = [
   ['g-h1', 'h1', '2026-08-29T16:30:00.000Z', true],
@@ -129,8 +136,9 @@ test('11. Kategorie Alle bietet die eindeutige Rollenvereinigung an', () => {
       'Sekretär',
       'Schiri',
       'Wischer',
-      'Ordner',
+      'Kasse Eintritt',
       'Verkauf',
+      'Ordner',
       'Kuchen',
       'Brezeln / Sonstiges',
       'Trikots'
@@ -141,7 +149,14 @@ test('11. Kategorie Alle bietet die eindeutige Rollenvereinigung an', () => {
 test('12. Kategorie Aktive bietet nur Aktive-Rollen an', () => {
   assert.deepEqual(
     getAvailableRoleOptions(roles, 'Aktive').map(option => option.label),
-    ['Zeitnehmer', 'Sekretär', 'Wischer', 'Ordner', 'Verkauf']
+    [
+      'Zeitnehmer',
+      'Sekretär',
+      'Wischer',
+      'Kasse Eintritt',
+      'Verkauf',
+      'Ordner'
+    ]
   )
 })
 
@@ -306,7 +321,7 @@ test('31. KPI-Basis entspricht ausschließlich dem gefilterten Spielbestand', ()
 
   assert.deepEqual(result, {
     homeGames: 2,
-    openTasks: 23,
+    openTasks: 27,
     assignmentCount: 1,
     teamCount: 2
   })
@@ -510,7 +525,15 @@ test('34. unbekannte Rolle bleibt hinter den bekannten Rollen sichtbar', () => {
   assert.deepEqual(
     getAvailableRoleOptions(rolesWithUnknown, 'Aktive')
       .map(option => option.label),
-    ['Zeitnehmer', 'Sekretär', 'Wischer', 'Ordner', 'Verkauf', 'Aufbau']
+    [
+      'Zeitnehmer',
+      'Sekretär',
+      'Wischer',
+      'Kasse Eintritt',
+      'Verkauf',
+      'Ordner',
+      'Aufbau'
+    ]
   )
 })
 
@@ -528,10 +551,65 @@ test('35. mehrere unbekannte Rollen folgen anschließend alphabetisch', () => {
       'Zeitnehmer',
       'Sekretär',
       'Wischer',
-      'Ordner',
+      'Kasse Eintritt',
       'Verkauf',
+      'Ordner',
       'Aufbau',
       'Zentrale'
     ]
   )
+})
+
+test('46. Kasse Eintritt bleibt im Offenfilter bei 0/2 und 1/2 sichtbar', () => {
+  const filters = {
+    games: [games[0]],
+    teams,
+    roles,
+    selectedRoleNames: ['Kasse Eintritt'],
+    openSelectedRolesOnly: true
+  }
+  const oneAssignment = [
+    assignment('ticket-1', 'g-h1', 'a-ticket-desk')
+  ]
+
+  assert.deepEqual(
+    ids(filterDashboardGames({ ...filters, assignments: [] })),
+    ['g-h1']
+  )
+  assert.deepEqual(
+    ids(filterDashboardGames({ ...filters, assignments: oneAssignment })),
+    ['g-h1']
+  )
+})
+
+test('47. Kasse Eintritt wird im Offenfilter bei 2/2 ausgeblendet', () => {
+  const result = filterDashboardGames({
+    games: [games[0]],
+    teams,
+    roles,
+    assignments: [
+      assignment('ticket-1', 'g-h1', 'a-ticket-desk'),
+      assignment('ticket-2', 'g-h1', 'a-ticket-desk')
+    ],
+    selectedRoleNames: ['Kasse Eintritt'],
+    openSelectedRolesOnly: true
+  })
+
+  assert.deepEqual(result, [])
+})
+
+test('48. KPI zählt Kasse Eintritt bei 1/2 weiterhin slotbasiert offen', () => {
+  const result = calculateDashboardKpis({
+    games: [games[0]],
+    teams,
+    roles: [roles.find(role => role.id === 'a-ticket-desk')],
+    assignments: [assignment('ticket-1', 'g-h1', 'a-ticket-desk')]
+  })
+
+  assert.deepEqual(result, {
+    homeGames: 1,
+    openTasks: 1,
+    assignmentCount: 1,
+    teamCount: 1
+  })
 })

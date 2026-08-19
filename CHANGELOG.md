@@ -1,5 +1,15 @@
 # Changelog
 
+## V24.0.7.6 – Kasse Eintritt und vorläufig deaktivierter XLSX-Export
+- Neue Aktive-Helferrolle `Kasse Eintritt` mit zwei Slots, Mindestbesetzung eins und fachlicher Position zwischen Wischer und Verkauf vorbereitet
+- Wiederholbare, additive Datenmigration ergänzt; bestehende Aktive-Rollen werden ohne feste IDs kollisionsfrei auf die Reihenfolge 1 bis 6 gesetzt
+- Seed-Daten auf denselben vollständigen Rollenstand mit `Kasse Eintritt`, `slots = 2` und `minimum_staff = 1` aktualisiert
+- Rollenfilterpriorität für Aktive und Alle zentral erweitert; Jugend bleibt unverändert und unbekannte Rollen folgen weiterhin alphabetisch
+- Generische Mindestbesetzungs-, Gesamtstatus-, KPI-, Offenfilter- und Voreinstellungslogik für 0/2, 1/2 und 2/2 automatisiert abgesichert
+- Öffentliche XLSX-Aktion vorläufig ausschließlich aus `App.jsx` entfernt; Komponente, Service, Modell, Abhängigkeit und Tests bleiben erhalten
+- Exportmodell bewusst auf dem freigegebenen V24.0.7.5-Stand mit 13 Spalten ohne `Kasse Eintritt` eingefroren
+- Keine Remote-Migration, keine Änderung produktiver Spiele oder Helferzuordnungen und keine RLS-, Policy- oder Grant-Änderung vorgenommen
+
 ## V24.0.7.5 – Filterbasierter XLSX-Helferexport
 - Öffentlichen, vollständig clientseitigen XLSX-Export für exakt den aktuell gefilterten Dashboard-Spielbestand ergänzt
 - Feste 13-spaltige Helferplanstruktur mit dynamischer Rollenmatrix, `FREI` je offenem Slot und `-` für kategoriefremde Rollen umgesetzt

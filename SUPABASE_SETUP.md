@@ -11,6 +11,7 @@ Die versionierte Grundlage besteht aus:
 - `supabase/migrations/20260727000500_complete_import_teams.sql`
 - `supabase/migrations/20260810000100_shorten_team_names.sql`
 - `supabase/migrations/20260810000300_add_helper_role_minimum_staff.sql`
+- `supabase/migrations/20260819000100_add_active_ticket_desk_role.sql`
 - `supabase/seed.sql`
 
 Die erste Migration ist die einmalig auszuführende Basismigration. Die
@@ -64,6 +65,19 @@ RLS, Policies und Grants werden nicht verändert.
 Dauerhafte Fachregel: `minimum_staff` entscheidet ausschließlich über die
 Durchführbarkeit. Die KPI „Offene Dienste“ und der Offenfilter zählen weiterhin
 tatsächlich freie Slots bis zur vollständigen Belegung.
+
+### Aktive-Rolle Kasse Eintritt
+
+V24.0.7.6 ergänzt die wiederholbare Datenmigration:
+
+- `supabase/migrations/20260819000100_add_active_ticket_desk_role.sql`
+
+Sie fügt ausschließlich `Aktive / Kasse Eintritt` mit `slots = 2`,
+`minimum_staff = 1` und `order_index = 4` hinzu. Verkauf und Ordner erhalten
+dadurch die Positionen 5 und 6. Die Migration verwendet keine festen Rollen-
+IDs und verändert weder Spiele noch Helferzuordnungen, RLS, Policies oder
+Grants. `supabase/seed.sql` enthält denselben Rollenstand für neue Projekte.
+Die Migration darf erst nach ausdrücklicher Freigabe remote angewendet werden.
 
 ## 5. Excel-Importnamen einrichten
 

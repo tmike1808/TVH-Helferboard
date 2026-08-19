@@ -14,6 +14,61 @@ const reducedRole = {
   minimum_staff: 3
 }
 
+const ticketDeskRole = {
+  id: 'ticket-desk',
+  slots: 2,
+  minimum_staff: 1
+}
+
+test('Kasse Eintritt unterscheidet 0/2, 1/2 und 2/2 generisch', () => {
+  const results = [0, 1, 2]
+    .map(count => getRoleStaffingStatus(ticketDeskRole, count))
+
+  assert.deepEqual(results, [
+    {
+      status: STAFFING_STATUS.NEEDS_STAFF,
+      slots: 2,
+      minimumStaff: 1,
+      filledSlots: 0,
+      openSlots: 2,
+      neededForMinimum: 1
+    },
+    {
+      status: STAFFING_STATUS.VIABLE,
+      slots: 2,
+      minimumStaff: 1,
+      filledSlots: 1,
+      openSlots: 1,
+      neededForMinimum: 0
+    },
+    {
+      status: STAFFING_STATUS.FULL,
+      slots: 2,
+      minimumStaff: 1,
+      filledSlots: 2,
+      openSlots: 0,
+      neededForMinimum: 0
+    }
+  ])
+})
+
+test('Kasse Eintritt blockiert das Spiel bei 0/2 und erlaubt es ab 1/2', () => {
+  const otherRole = { id: 'time', slots: 1, minimum_staff: 1 }
+  const baseAssignments = [{ id: 'time-1', role_id: 'time' }]
+
+  assert.equal(
+    getGameStaffingStatus([ticketDeskRole, otherRole], baseAssignments).status,
+    STAFFING_STATUS.NEEDS_STAFF
+  )
+  assert.equal(
+    getGameStaffingStatus([ticketDeskRole, otherRole], [
+      ...baseAssignments,
+      { id: 'ticket-1', role_id: 'ticket-desk' }
+    ]).status,
+    STAFFING_STATUS.VIABLE
+  )
+})
+
 test('reduzierte Mindestbesetzung unterscheidet 0/4 bis 4/4 korrekt', () => {
   const results = [0, 1, 2, 3, 4]
     .map(count => getRoleStaffingStatus(reducedRole, count))

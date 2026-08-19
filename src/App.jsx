@@ -7,7 +7,6 @@ import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import KPISection from './components/KPISection'
 import FilterBar from './components/FilterBar'
-import DashboardExportButton from './components/DashboardExportButton'
 import MatchdayCalendar from './components/MatchdayCalendar'
 import MatchCard from './components/MatchCard'
 import AdminGameImportPage from './pages/AdminGameImportPage'
@@ -28,9 +27,6 @@ export default function App() {
 
   const {
     games,
-    teams,
-    roles,
-    assignments,
     showPastGames,
     selectedMatchdayIds,
     loadData,
@@ -115,13 +111,6 @@ export default function App() {
             <KPISection />
 
             <FilterBar />
-
-            <DashboardExportButton
-              games={filteredGames}
-              teams={teams}
-              roles={roles}
-              assignments={assignments}
-            />
 
             <MatchdayCalendar />
 
